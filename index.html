@@ -234,11 +234,24 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #
 /* ── Animations ── */
 @keyframes fadeIn { from { opacity:0; transform: translateY(-8px); } to { opacity:1; transform:none; } }
 
+/* ── PDF / Print button ── */
+.pdf-btn { width: 100%; margin-top: .4rem; background: #0f172a;
+           color: #7eb8d8; border: 1px solid #1e4976; border-radius: 6px;
+           padding: .45rem; font-size: .82rem; font-weight: 600; cursor: pointer;
+           transition: all .15s; display: flex; align-items: center;
+           justify-content: center; gap: .4rem; }
+.pdf-btn:hover { background: #1e293b; color: #c8dff0; }
+
 /* ── Print ── */
 @media print {
   #sidebar { display: none; }
-  body { overflow: auto; }
-  #main { overflow: visible; padding: 0; }
+  body { overflow: auto; display: block; }
+  #main { overflow: visible; padding: 1rem; }
+  .tabs { display: none; }
+  .section { display: block !important; page-break-inside: avoid; margin-bottom: 2rem; }
+  .section::before { content: attr(data-title); font-size: 1rem; font-weight: 800;
+                     color: #0c2340; display: block; margin-bottom: .8rem;
+                     border-bottom: 2px solid #0c2340; padding-bottom: .3rem; }
 }
 </style>
 </head>
@@ -357,6 +370,7 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #
   <hr class="sb-sep">
   <button class="action-btn" onclick="update()">Calcular scoring</button>
   <button class="reset-btn" onclick="resetForm()">Nueva valoración</button>
+  <button class="pdf-btn" onclick="exportPDF()">⬇ Descargar PDF</button>
 </div>
 
 <!-- ═══════════════════════════ MAIN ═══════════════════════════ -->
@@ -378,7 +392,7 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #
   </div>
 
   <!-- ── TAB: SCORING ── -->
-  <div id="tab-scoring" class="section active">
+  <div id="tab-scoring" class="section active" data-title="Scoring de Riesgo Crediticio">
 
     <!-- Gating banner -->
     <div id="gating-banner" class="gating-banner">
@@ -458,7 +472,7 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #
   </div><!-- /tab-scoring -->
 
   <!-- ── TAB: NUEVA DEUDA ── -->
-  <div id="tab-nueva_deuda" class="section">
+  <div id="tab-nueva_deuda" class="section" data-title="Análisis Nueva Deuda">
     <div class="nueva-deuda-grid">
       <div class="nd-result card">
         <div class="card-title">Análisis de Servicio de Deuda Nueva</div>
@@ -478,7 +492,7 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #
   </div>
 
   <!-- ── TAB: COMPARABLES ── -->
-  <div id="tab-comparables" class="section">
+  <div id="tab-comparables" class="section" data-title="Comparables Sectoriales">
     <div class="card" style="margin-bottom:1.2rem;">
       <div class="card-title">Comparables Sectoriales — <span id="sect-name">—</span></div>
       <div style="overflow-x:auto;">
@@ -900,47 +914,78 @@ function renderScoring(d, r, res, score, gate) {
 
 // ── NUEVA DEUDA TAB ──
 function renderNuevaDeuda(d, r, nd) {
-  const ndC = document.getElementById('nd-content');
+  const ndC   = document.getElementById('nd-content');
   const ndCap = document.getElementById('nd-capacity');
   const ndLtv = document.getElementById('nd-ltv');
 
-  if (!nd) {
-    ndC.innerHTML = '<p style="color:#94a3b8;font-size:.85rem;">Introduzca importe, plazo y tipo de interés en el panel lateral para ver el análisis.</p>';
-    ndCap.innerHTML = '';
-    ndLtv.innerHTML = '';
-    return;
-  }
-
-  const statusClass = nd.fits ? 'nd-ok' : nd.combDSCR >= 1.0 ? 'nd-warn' : 'nd-bad';
-  const statusText  = nd.fits ? '✓ VIABLE (DSCR ≥ 1.25x)' : nd.combDSCR >= 1.0 ? '⚠ AJUSTADO (1.0x–1.25x)' : '✗ NO VIABLE (DSCR < 1.0x)';
-
-  ndC.innerHTML = `
-    <div class="nd-row"><span class="nd-lbl">Servicio deuda nueva / año</span><span class="nd-val">${nd.newDS.toFixed(2)} M€</span></div>
-    <div class="nd-row"><span class="nd-lbl">CFADS disponible</span><span class="nd-val">${r.cfads.toFixed(2)} M€</span></div>
-    <div class="nd-row"><span class="nd-lbl">Servicio deuda existente</span><span class="nd-val">${r.debt_svc.toFixed(2)} M€</span></div>
-    <div class="nd-row"><span class="nd-lbl">DSCR combinado (nueva + existente)</span><span class="nd-val">${nd.combDSCR.toFixed(2)}x</span></div>
-    <div class="nd-row"><span class="nd-lbl">Resultado</span><span class="nd-val"><span class="nd-status ${statusClass}">${statusText}</span></span></div>`;
+  // ── Capacidad de endeudamiento — siempre visible ──
+  const rate_cap = Math.max((d.tipo_int || 6) / 100, 0.0001);
+  const n_cap    = Math.max(d.plazo || 5, 1);
+  const maxNew   = r.cfads / 1.25 > r.debt_svc
+    ? Math.max((r.cfads / 1.25 - r.debt_svc) / (rate_cap + 1/n_cap), 0)
+    : 0;
+  const headroomPct = r.debt_svc > 0
+    ? ((r.cfads / r.debt_svc - 1.25) / 1.25 * 100).toFixed(1)
+    : '∞';
 
   ndCap.innerHTML = `
-    <div class="nd-row"><span class="nd-lbl">Importe máx. financiable (DSCR = 1.25x)</span><span class="nd-val">${nd.maxNew > 0 ? nd.maxNew.toFixed(2)+' M€' : 'Capacidad agotada'}</span></div>
-    <div class="nd-row"><span class="nd-lbl">Importe solicitado</span><span class="nd-val">${r.importe.toFixed(2)} M€</span></div>
-    <div class="nd-row"><span class="nd-lbl">Margen de seguridad</span><span class="nd-val">${nd.maxNew > 0 ? (nd.maxNew - r.importe).toFixed(2)+' M€' : '—'}</span></div>
-    <div class="nd-row"><span class="nd-lbl">Tipo interés aplicado</span><span class="nd-val">${r.tipo_int}%</span></div>
-    <div class="nd-row"><span class="nd-lbl">Plazo</span><span class="nd-val">${r.plazo} años</span></div>`;
+    <div class="nd-row"><span class="nd-lbl">CFADS disponible</span><span class="nd-val">${r.cfads.toFixed(2)} M€</span></div>
+    <div class="nd-row"><span class="nd-lbl">Servicio deuda actual / año</span><span class="nd-val">${r.debt_svc.toFixed(2)} M€</span></div>
+    <div class="nd-row"><span class="nd-lbl">DSCR actual</span><span class="nd-val">${r.dscr.toFixed(2)}x</span></div>
+    <div class="nd-row"><span class="nd-lbl">Importe máx. financiable (DSCR = 1.25x)</span>
+      <span class="nd-val" style="color:${maxNew > 0 ? '#15803d' : '#991b1b'};font-size:1rem;">
+        ${maxNew > 0 ? maxNew.toFixed(2)+' M€' : 'Capacidad agotada'}
+      </span>
+    </div>
+    <div class="nd-row"><span class="nd-lbl">Headroom sobre 1.25x DSCR</span><span class="nd-val">${headroomPct}%</span></div>
+    <div class="nd-row"><span class="nd-lbl">Tipo int. referencia / Plazo</span><span class="nd-val">${d.tipo_int}% / ${d.plazo} años</span></div>`;
 
-  // LTV
-  if (r.ltv !== null) {
-    const ltvMax = {inmueble:60, maquinaria:40, cuentas_cobrar:70, ninguno:null}[d.tipo_col];
+  // ── Análisis de operación nueva — sólo si importe > 0 ──
+  if (!nd) {
+    ndC.innerHTML = `
+      <p style="color:#94a3b8;font-size:.85rem;margin-bottom:.8rem;">
+        Introduce el importe, plazo y tipo de interés en el panel lateral para analizar la operación concreta.
+      </p>
+      <div class="nd-row"><span class="nd-lbl">Capacidad adicional estimada</span>
+        <span class="nd-val" style="color:${maxNew>0?'#15803d':'#991b1b'};">
+          ${maxNew > 0 ? '≈ '+maxNew.toFixed(2)+' M€ disponibles' : 'Sin capacidad adicional'}
+        </span>
+      </div>`;
+  } else {
+    const statusClass = nd.fits ? 'nd-ok' : nd.combDSCR >= 1.0 ? 'nd-warn' : 'nd-bad';
+    const statusText  = nd.fits ? '✓ VIABLE (DSCR ≥ 1.25x)' : nd.combDSCR >= 1.0 ? '⚠ AJUSTADO (1.0x–1.25x)' : '✗ NO VIABLE (DSCR < 1.0x)';
+    const margin      = maxNew - d.importe;
+    ndC.innerHTML = `
+      <div class="nd-row"><span class="nd-lbl">Importe solicitado</span><span class="nd-val">${d.importe.toFixed(2)} M€</span></div>
+      <div class="nd-row"><span class="nd-lbl">Servicio deuda nueva / año</span><span class="nd-val">${nd.newDS.toFixed(2)} M€</span></div>
+      <div class="nd-row"><span class="nd-lbl">DSCR combinado (nueva + existente)</span><span class="nd-val">${nd.combDSCR.toFixed(2)}x</span></div>
+      <div class="nd-row"><span class="nd-lbl">Margen vs. importe máx. financiable</span>
+        <span class="nd-val" style="color:${margin>=0?'#15803d':'#991b1b'};">
+          ${margin >= 0 ? '+'+margin.toFixed(2)+' M€' : margin.toFixed(2)+' M€'}
+        </span>
+      </div>
+      <div class="nd-row"><span class="nd-lbl">Resultado</span>
+        <span class="nd-val"><span class="nd-status ${statusClass}">${statusText}</span></span>
+      </div>`;
+  }
+
+  // ── LTV ──
+  if (d.colateral > 0 && d.importe > 0 && r.ltv !== null) {
+    const ltvMax    = {inmueble:60, maquinaria:40, cuentas_cobrar:70, ninguno:null}[d.tipo_col];
     const ltvStatus = ltvMax ? (r.ltv <= ltvMax ? 'nd-ok' : 'nd-bad') : 'nd-warn';
-    const ltvTxt    = ltvMax ? (r.ltv <= ltvMax ? `✓ Dentro del límite (max ${ltvMax}%)` : `✗ Supera límite ${ltvMax}% para ${d.tipo_col}`) : 'Sin límite definido';
+    const ltvTxt    = ltvMax
+      ? (r.ltv <= ltvMax ? `✓ Dentro del límite (max ${ltvMax}%)` : `✗ Supera límite ${ltvMax}% para ${d.tipo_col}`)
+      : 'Sin límite definido';
     ndLtv.innerHTML = `
       <div class="nd-row"><span class="nd-lbl">Tipo de colateral</span><span class="nd-val">${d.tipo_col}</span></div>
-      <div class="nd-row"><span class="nd-lbl">Valor colateral</span><span class="nd-val">${r.colateral.toFixed(2)} M€</span></div>
-      <div class="nd-row"><span class="nd-lbl">Importe solicitado</span><span class="nd-val">${r.importe.toFixed(2)} M€</span></div>
+      <div class="nd-row"><span class="nd-lbl">Valor colateral</span><span class="nd-val">${d.colateral.toFixed(2)} M€</span></div>
+      <div class="nd-row"><span class="nd-lbl">Importe solicitado</span><span class="nd-val">${d.importe.toFixed(2)} M€</span></div>
       <div class="nd-row"><span class="nd-lbl">LTV calculado</span><span class="nd-val">${r.ltv.toFixed(1)}%</span></div>
-      <div class="nd-row"><span class="nd-lbl">Resultado LTV</span><span class="nd-val"><span class="nd-status ${ltvStatus}">${ltvTxt}</span></span></div>`;
+      <div class="nd-row"><span class="nd-lbl">Resultado LTV</span>
+        <span class="nd-val"><span class="nd-status ${ltvStatus}">${ltvTxt}</span></span>
+      </div>`;
   } else {
-    ndLtv.innerHTML = '<p style="color:#94a3b8;font-size:.85rem;">Introduzca importe y valor del colateral para ver el análisis LTV.</p>';
+    ndLtv.innerHTML = '<p style="color:#94a3b8;font-size:.85rem;">Introduce importe y valor del colateral para ver el análisis LTV.</p>';
   }
 }
 
@@ -1220,6 +1265,25 @@ function switchTab(name) {
 function setText(id, html) {
   const el = document.getElementById(id);
   if (el) el.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PDF EXPORT
+// ═══════════════════════════════════════════════════════════════
+function exportPDF() {
+  // Show all sections temporarily for print
+  const sections = document.querySelectorAll('.section');
+  const tabs     = document.querySelectorAll('.tab');
+  sections.forEach(s => s.style.display = 'block');
+  tabs.forEach(t => t.style.display = 'none');
+  window.print();
+  // Restore after print dialog closes
+  setTimeout(() => {
+    sections.forEach(s => s.style.display = '');
+    tabs.forEach(t => t.style.display = '');
+    // Re-apply active class visibility
+    document.querySelectorAll('.section.active').forEach(s => s.style.display = 'block');
+  }, 1000);
 }
 
 // ── Init ──

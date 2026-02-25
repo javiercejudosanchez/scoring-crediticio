@@ -242,6 +242,42 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #
 .badge-g { background: #fbbf24; color: #78350f; padding: .15rem .5rem;
            border-radius: 20px; font-size: .72rem; font-weight: 700; }
 
+/* ── Colateral inventory table ── */
+.col-table { width:100%; border-collapse:collapse; font-size:.82rem; }
+.col-table th { background:#f8fafc; font-size:.67rem; font-weight:700; text-transform:uppercase;
+                letter-spacing:.5px; color:#64748b; padding:.55rem .7rem; text-align:left; white-space:nowrap; }
+.col-table td { padding:.42rem .7rem; border-bottom:1px solid #f1f5f9; vertical-align:middle; }
+.col-table tfoot td { padding:.6rem .7rem; font-weight:800; }
+.col-inp { background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px;
+           padding:.28rem .4rem; font-size:.8rem; font-family:inherit; }
+.col-inp:focus { border-color:#3b82f6; outline:none; }
+.col-inp-desc { width:140px; }
+.col-inp-num  { width:70px; text-align:right; }
+.col-sel { width:155px; }
+.col-haircut { text-align:center; font-weight:700; color:#f97316; }
+.col-neto    { text-align:right; font-weight:800; color:#0c2340; }
+.col-del-btn { background:none; border:none; color:#ef4444; font-size:1.1rem;
+               cursor:pointer; padding:.1rem .3rem; line-height:1; }
+.col-del-btn:hover { color:#991b1b; }
+
+/* ── Recovery metric cards ── */
+.rec-kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+                gap:.9rem; margin-bottom:1.2rem; }
+.rec-kpi { background:white; border-radius:12px; padding:.9rem 1rem;
+           box-shadow:0 1px 4px rgba(0,0,0,.07); border-top:3px solid #e2e8f0; }
+.rec-kpi.rv  { border-top-color:#22c55e; }
+.rec-kpi.ra  { border-top-color:#f59e0b; }
+.rec-kpi.rn  { border-top-color:#f97316; }
+.rec-kpi.rr  { border-top-color:#ef4444; }
+.rec-kpi.rb  { border-top-color:#1d4ed8; }
+.rk-label { font-size:.63rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#64748b; margin-bottom:.3rem; }
+.rk-value { font-size:1.3rem; font-weight:800; color:#0c2340; line-height:1; }
+.rk-sub   { font-size:.68rem; color:#94a3b8; margin-top:.25rem; }
+
+/* ── Priority table ── */
+.pri-covered { background:#f0fdf4; }
+.pri-partial { background:#fefce8; }
+
 /* ── Animations ── */
 @keyframes fadeIn { from { opacity:0; transform: translateY(-8px); } to { opacity:1; transform:none; } }
 
@@ -557,6 +593,7 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #
     <div class="tab inactive" onclick="switchTab('nueva_deuda')">Nueva Deuda</div>
     <div class="tab inactive" onclick="switchTab('comparables')">Comparables</div>
     <div class="tab inactive" onclick="switchTab('covenants')">Covenants</div>
+    <div class="tab inactive" onclick="switchTab('colateral')">Colateral</div>
     <div class="tab inactive" onclick="switchTab('detalle')">Detalle</div>
   </div>
 
@@ -700,6 +737,76 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #
       <div id="cov-extra"></div>
     </div>
   </div>
+
+  <!-- ── TAB: COLATERAL ── -->
+  <div id="tab-colateral" class="section" data-title="Análisis de Colateral y Recovery">
+
+    <!-- S1: Inventory -->
+    <div class="card" style="margin-bottom:1.2rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+        <div class="card-title" style="margin-bottom:0;">Sección 1 — Inventario de Colaterales</div>
+        <button onclick="addColRow()" style="background:#1d4ed8;color:white;border:none;border-radius:8px;padding:.4rem .9rem;font-size:.8rem;font-weight:700;cursor:pointer;">+ Añadir activo</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="col-table">
+          <thead><tr>
+            <th>Tipo de activo</th>
+            <th>Descripción</th>
+            <th style="text-align:right;">Valor bruto (M€)</th>
+            <th style="text-align:center;">Haircut</th>
+            <th style="text-align:right;">Valor neto (M€)</th>
+            <th>Tiempo ejecución</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="col-tbody">
+            <tr id="col-empty"><td colspan="7" style="text-align:center;color:#94a3b8;padding:1.8rem;font-size:.85rem;">Sin activos. Pulsa "+ Añadir activo" para comenzar.</td></tr>
+          </tbody>
+          <tfoot id="col-tfoot" style="display:none;">
+            <tr style="background:#f8fafc;border-top:2px solid #e2e8f0;">
+              <td colspan="2" style="color:#0c2340;">TOTAL</td>
+              <td style="text-align:right;font-size:1rem;color:#0c2340;" id="col-t-bruto">0.00</td>
+              <td></td>
+              <td style="text-align:right;font-size:1rem;color:#15803d;" id="col-t-neto">0.00</td>
+              <td colspan="2"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- S2: Recovery metrics -->
+    <div id="col-s2" style="display:none;margin-bottom:1.2rem;">
+      <div class="card-title" style="margin-bottom:.8rem;">Sección 2 — Métricas de Recovery</div>
+      <div class="rec-kpi-grid" id="col-kpis"></div>
+    </div>
+
+    <!-- S3: Waterfall -->
+    <div id="col-s3" class="card" style="display:none;margin-bottom:1.2rem;">
+      <div class="card-title">Sección 3 — Waterfall de Recuperación</div>
+      <div id="col-waterfall" style="height:300px;"></div>
+    </div>
+
+    <!-- S4: Priority -->
+    <div id="col-s4" class="card" style="display:none;">
+      <div class="card-title">Sección 4 — Análisis de Prioridad de Cobro</div>
+      <div style="overflow-x:auto;">
+        <table class="col-table">
+          <thead><tr>
+            <th>#</th><th>Tipo</th><th>Descripción</th>
+            <th>Tiempo ejecución</th>
+            <th style="text-align:right;">Recuperable PV (M€)</th>
+            <th style="text-align:right;">Cobertura acum.</th>
+            <th>Estado</th>
+          </tr></thead>
+          <tbody id="col-priority"></tbody>
+        </table>
+      </div>
+      <p id="col-note" style="font-size:.75rem;color:#94a3b8;margin-top:.8rem;">
+        Valores presentes descontados al 8% según tiempo medio de ejecución estimado por tipo de activo.
+      </p>
+    </div>
+
+  </div><!-- /tab-colateral -->
 
   <!-- ── TAB: DETALLE ── -->
   <div id="tab-detalle" class="section">
@@ -894,6 +1001,8 @@ function calcNuevaDeuda(d, r) {
 function readInputs() {
   const g = id => parseFloat(document.getElementById(id).value) || 0;
   const gs = id => document.getElementById(id).value;
+  // If inventory has data, use its total bruto as collateral (improves LTV scoring)
+  const invTotal = _colRows.reduce((s,r) => s + (parseFloat(r.bruto)||0), 0);
   return {
     ventas: g('ventas'), ebitda: g('ebitda'), gastos_fin: g('gastos_fin'),
     imp_pagado: g('imp_pagado'), capex_mant: g('capex_mant'),
@@ -901,7 +1010,8 @@ function readInputs() {
     activo_corriente: g('activo_corriente'), pasivo_corriente: g('pasivo_corriente'),
     clientes: g('clientes'), proveedores: g('proveedores'), vida_media: g('vida_media'),
     importe: g('importe'), plazo: g('plazo'), tipo_int: g('tipo_int'),
-    colateral: g('colateral'), tipo_col: gs('tipo_col'),
+    colateral: invTotal > 0 ? invTotal : g('colateral'),
+    tipo_col: gs('tipo_col'),
     equipo: parseInt(gs('equipo')), concentracion: parseInt(gs('concentracion')),
     antiguedad: parseInt(gs('antiguedad')), ciclicidad: parseInt(gs('ciclicidad')),
     sector_comp: gs('sector_comp'),
@@ -1005,6 +1115,7 @@ function update() {
   renderComparables(d, r);
   renderCovenants(r, res, score);
   renderDetalle(res, score);
+  recalcColateral();
 }
 
 // ── SCORING TAB ──
@@ -1492,12 +1603,20 @@ function resetForm() {
   document.getElementById('pricing-grid').innerHTML = '';
   document.getElementById('cov-extra').innerHTML = '';
   document.getElementById('det-tbody').innerHTML = '';
+  // Reset colateral inventory
+  _colRows = [];
+  renderColTable();
+  ['col-s2','col-s3','col-s4'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  if (document.getElementById('col-waterfall')) Plotly.purge('col-waterfall');
 }
 
 // ═══════════════════════════════════════════════════════════════
 // TABS
 // ═══════════════════════════════════════════════════════════════
-const TAB_IDS = ['scoring','nueva_deuda','comparables','covenants','detalle'];
+const TAB_IDS = ['scoring','nueva_deuda','comparables','covenants','colateral','detalle'];
 
 function switchTab(name) {
   TAB_IDS.forEach(t => {
@@ -1514,6 +1633,188 @@ function switchTab(name) {
 function setText(id, html) {
   const el = document.getElementById(id);
   if (el) el.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// COLATERAL ANALYSIS
+// ═══════════════════════════════════════════════════════════════
+
+const COL_CFG = {
+  inmueble:       { label:'Inmueble comercial', haircut:0.40, execMid:3.0,    execLabel:'24–48 meses' },
+  nave:           { label:'Nave industrial',    haircut:0.40, execMid:3.0,    execLabel:'24–48 meses' },
+  maquinaria:     { label:'Maquinaria',         haircut:0.60, execMid:0.75,   execLabel:'6–12 meses'  },
+  stock:          { label:'Stock / Inventario', haircut:0.50, execMid:0.167,  execLabel:'1–3 meses'   },
+  cuentas_cobrar: { label:'Cuentas a cobrar',   haircut:0.30, execMid:0.375,  execLabel:'3–6 meses'   },
+  otros:          { label:'Otros',              haircut:0.50, execMid:0.75,   execLabel:'6–12 meses'  },
+};
+
+let _colRows = [];
+
+function addColRow() {
+  _colRows.push({ tipo:'inmueble', desc:'', bruto:0 });
+  renderColTable();
+  update();
+}
+
+function removeColRow(i) {
+  _colRows.splice(i, 1);
+  renderColTable();
+  update();
+}
+
+function onColChange(i, field, val) {
+  _colRows[i][field] = field === 'bruto' ? (parseFloat(val) || 0) : val;
+  if (field !== 'desc') { renderColTable(); update(); }
+}
+
+function renderColTable() {
+  const tbody = document.getElementById('col-tbody');
+  const tfoot = document.getElementById('col-tfoot');
+  if (!tbody) return;
+
+  if (_colRows.length === 0) {
+    tbody.innerHTML = '<tr id="col-empty"><td colspan="7" style="text-align:center;color:#94a3b8;padding:1.8rem;font-size:.85rem;">Sin activos. Pulsa "+ Añadir activo" para comenzar.</td></tr>';
+    tfoot.style.display = 'none';
+    return;
+  }
+  tfoot.style.display = '';
+
+  let totalBruto = 0, totalNeto = 0;
+  const opts = key => Object.entries(COL_CFG).map(([k,v]) =>
+    `<option value="${k}" ${k===key?'selected':''}>${v.label}</option>`).join('');
+
+  tbody.innerHTML = _colRows.map((row, i) => {
+    const cfg  = COL_CFG[row.tipo] || COL_CFG.otros;
+    const neto = (row.bruto||0) * (1 - cfg.haircut);
+    totalBruto += row.bruto||0;
+    totalNeto  += neto;
+    return `<tr>
+      <td><select onchange="onColChange(${i},'tipo',this.value)" class="col-inp col-sel">${opts(row.tipo)}</select></td>
+      <td><input type="text" value="${row.desc||''}" onchange="onColChange(${i},'desc',this.value)" placeholder="Descripción..." class="col-inp col-inp-desc"></td>
+      <td style="text-align:right;"><input type="number" value="${row.bruto||''}" step="0.1" min="0" oninput="onColChange(${i},'bruto',this.value)" class="col-inp col-inp-num"></td>
+      <td class="col-haircut">${Math.round(cfg.haircut*100)}%</td>
+      <td class="col-neto">${neto.toFixed(2)}</td>
+      <td style="font-size:.75rem;color:#64748b;white-space:nowrap;">${cfg.execLabel}</td>
+      <td style="text-align:center;"><button class="col-del-btn" onclick="removeColRow(${i})">×</button></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('col-t-bruto').textContent = totalBruto.toFixed(2);
+  document.getElementById('col-t-neto').textContent  = totalNeto.toFixed(2);
+}
+
+function recalcColateral() {
+  const s2 = document.getElementById('col-s2');
+  const s3 = document.getElementById('col-s3');
+  const s4 = document.getElementById('col-s4');
+  if (!s2) return;
+
+  if (_colRows.length === 0 || !_currentData) {
+    s2.style.display = s3.style.display = s4.style.display = 'none';
+    return;
+  }
+
+  const { d, score } = _currentData;
+
+  // Compute per-row enriched values
+  const rows = _colRows.map(row => {
+    const cfg  = COL_CFG[row.tipo] || COL_CFG.otros;
+    const neto = (row.bruto||0) * (1 - cfg.haircut);
+    const pv   = neto / Math.pow(1.08, cfg.execMid);
+    return { ...row, ...cfg, neto, pv };
+  });
+
+  const totalBruto = rows.reduce((s,r) => s + (r.bruto||0), 0);
+  const totalNeto  = rows.reduce((s,r) => s + r.neto, 0);
+  const totalPV    = rows.reduce((s,r) => s + r.pv, 0);
+
+  const importe = d.importe > 0 ? d.importe : Math.max(_currentData.r.dfn, 0.001);
+  const ltv       = totalBruto > 0 ? (importe / totalBruto * 100) : null;
+  const recRate   = importe > 0 ? Math.min(totalPV / importe * 100, 200) : 0;
+  const lgd       = Math.max(1 - recRate/100, 0);
+  const ead       = importe;
+  const pd        = score > 70 ? 0.015 : score >= 50 ? 0.035 : 0.07;
+  const rwa       = ead * pd * lgd * 1.2 * 12.5;
+  const expLoss   = ead * pd * lgd;
+
+  s2.style.display = s3.style.display = s4.style.display = '';
+
+  // ── KPI cards ──
+  const kpiCfg = [
+    { label:'LTV',              val: ltv !== null ? ltv.toFixed(1)+'%' : 'N/A',
+      sub:'Deuda / Colateral bruto',
+      cls: ltv === null ? 'rb' : ltv < 50 ? 'rv' : ltv <= 70 ? 'ra' : 'rr' },
+    { label:'Recovery Rate',    val: recRate.toFixed(1)+'%',
+      sub:'Valor neto PV / Deuda',
+      cls: recRate >= 70 ? 'rv' : recRate >= 40 ? 'ra' : 'rr' },
+    { label:'LGD',              val: (lgd*100).toFixed(1)+'%',
+      sub:'Loss Given Default',
+      cls: lgd < 0.30 ? 'rv' : lgd < 0.60 ? 'ra' : 'rr' },
+    { label:'EAD',              val: ead.toFixed(2)+' M€',
+      sub:'Exposure at Default', cls:'rb' },
+    { label:'PD estimada',      val: (pd*100).toFixed(2)+'%',
+      sub:'Basada en score '+score,
+      cls: pd <= 0.015 ? 'rv' : pd <= 0.035 ? 'ra' : 'rr' },
+    { label:'Pérdida esperada', val: expLoss.toFixed(3)+' M€',
+      sub:'EAD × PD × LGD',
+      cls: expLoss/ead < 0.01 ? 'rv' : expLoss/ead < 0.05 ? 'ra' : 'rr' },
+    { label:'RWA estimado',     val: rwa.toFixed(2)+' M€',
+      sub:'EAD × PD × LGD × 15', cls:'rb' },
+    { label:'Recovery PV total',val: totalPV.toFixed(2)+' M€',
+      sub:'Descontado al 8%',
+      cls: totalPV >= ead ? 'rv' : totalPV >= ead*0.6 ? 'ra' : 'rr' },
+    { label:'Colateral bruto',  val: totalBruto.toFixed(2)+' M€',
+      sub:'Total inventario', cls:'rb' },
+    { label:'Colateral neto',   val: totalNeto.toFixed(2)+' M€',
+      sub:'Tras haircuts', cls:'rb' },
+  ];
+  document.getElementById('col-kpis').innerHTML = kpiCfg.map(k =>
+    `<div class="rec-kpi ${k.cls}">
+       <div class="rk-label">${k.label}</div>
+       <div class="rk-value">${k.val}</div>
+       <div class="rk-sub">${k.sub}</div>
+     </div>`).join('');
+
+  // ── Waterfall chart ──
+  const perdida = Math.max(importe - totalPV, 0);
+  Plotly.react('col-waterfall', [
+    { type:'bar', name:'Deuda prestada',       x:['Deuda prestada'],       y:[importe],
+      marker:{color:'#1d4ed8'}, text:[importe.toFixed(2)+' M€'], textposition:'outside' },
+    { type:'bar', name:'Recovery esperado (PV)',x:['Recovery esperado (PV)'],y:[totalPV],
+      marker:{color:'#22c55e'}, text:[totalPV.toFixed(2)+' M€ ('+recRate.toFixed(0)+'%)'], textposition:'outside' },
+    { type:'bar', name:'Pérdida esperada (EL)', x:['Pérdida esperada (EL)'],y:[expLoss],
+      marker:{color:'#ef4444'}, text:[expLoss.toFixed(3)+' M€'], textposition:'outside' },
+  ], {
+    barmode:'group', paper_bgcolor:'white', plot_bgcolor:'white',
+    legend:{ orientation:'h', y:1.2 },
+    yaxis:{ title:'M€', gridcolor:'#f1f5f9', showgrid:true },
+    margin:{ t:40,b:40,l:60,r:20 }, height:300,
+  }, { displayModeBar:false, responsive:true });
+
+  // ── Priority table ──
+  const sorted = [...rows].sort((a,b) => a.execMid - b.execMid);
+  let cumPV = 0;
+  document.getElementById('col-priority').innerHTML = sorted.map((row, i) => {
+    cumPV += row.pv;
+    const cumPct  = importe > 0 ? (cumPV / importe * 100) : 0;
+    const covered = cumPV >= importe;
+    const justCov = covered && (cumPV - row.pv) < importe;
+    const rowCls  = justCov ? 'pri-covered' : covered ? 'pri-covered' : '';
+    const badge   = covered
+      ? '<span style="background:#dcfce7;color:#15803d;padding:.15rem .5rem;border-radius:20px;font-size:.72rem;font-weight:700;">✓ Cubierto</span>'
+      : `<span style="background:#fee2e2;color:#991b1b;padding:.15rem .5rem;border-radius:20px;font-size:.72rem;font-weight:700;">✗ Déficit ${(importe-cumPV).toFixed(2)}M€</span>`;
+    return `<tr class="${rowCls}">
+      <td style="font-weight:800;color:#1d4ed8;">${i+1}</td>
+      <td>${row.label}</td>
+      <td style="color:#64748b;">${row.desc||'—'}</td>
+      <td><span style="background:#f0f4f8;border-radius:4px;padding:.15rem .4rem;font-size:.75rem;">${row.execLabel}</span></td>
+      <td style="text-align:right;font-weight:700;">${row.pv.toFixed(2)} M€</td>
+      <td style="text-align:right;">
+        <span style="font-weight:800;color:${cumPct>=100?'#15803d':cumPct>=60?'#92400e':'#991b1b'};">${Math.min(cumPct,100).toFixed(1)}%</span>
+      </td>
+      <td>${badge}</td>
+    </tr>`;
+  }).join('');
 }
 
 // ═══════════════════════════════════════════════════════════════

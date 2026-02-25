@@ -124,6 +124,7 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #
 .ratio-tile:hover { transform: translateY(-2px); }
 .ratio-tile.verde   { border-top-color: #22c55e; }
 .ratio-tile.amarillo{ border-top-color: #f59e0b; }
+.ratio-tile.naranja { border-top-color: #f97316; }
 .ratio-tile.rojo    { border-top-color: #ef4444; }
 .rt-label { font-size: .65rem; font-weight: 700; text-transform: uppercase;
             letter-spacing: .5px; color: #64748b; }
@@ -133,7 +134,15 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #
             padding: .15rem .45rem; border-radius: 20px; display: inline-block; }
 .verde    .rt-score { background: #dcfce7; color: #15803d; }
 .amarillo .rt-score { background: #fef3c7; color: #92400e; }
+.naranja  .rt-score { background: #ffedd5; color: #9a3412; }
 .rojo     .rt-score { background: #fee2e2; color: #991b1b; }
+
+/* LTV indicator in sidebar */
+.ltv-indicator { border-radius: 6px; padding: .4rem .6rem; margin-top: .3rem;
+                 font-size: .75rem; font-weight: 700; display: none; }
+.ltv-ok   { background: #dcfce7; color: #15803d; display: block; }
+.ltv-warn { background: #fef3c7; color: #92400e; display: block; }
+.ltv-bad  { background: #fee2e2; color: #991b1b; display: block; }
 .gating-badge { font-size: .6rem; font-weight: 800; text-transform: uppercase;
                 background: #fbbf24; color: #78350f; padding: .1rem .35rem;
                 border-radius: 4px; margin-left: .3rem; vertical-align: middle; }
@@ -227,6 +236,8 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #
 .badge-a { background: #fef3c7; color: #92400e; padding: .15rem .5rem;
            border-radius: 20px; font-size: .72rem; font-weight: 700; }
 .badge-r { background: #fee2e2; color: #991b1b; padding: .15rem .5rem;
+           border-radius: 20px; font-size: .72rem; font-weight: 700; }
+.badge-n { background: #ffedd5; color: #9a3412; padding: .15rem .5rem;
            border-radius: 20px; font-size: .72rem; font-weight: 700; }
 .badge-g { background: #fbbf24; color: #78350f; padding: .15rem .5rem;
            border-radius: 20px; font-size: .72rem; font-weight: 700; }
@@ -423,19 +434,26 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #
   <hr class="sb-sep">
   <!-- Operación nueva -->
   <div class="sb-sec">Operación Nueva (opcional)</div>
-  <div class="field"><label>Importe solicitado (M€)</label><input type="number" id="importe" step="0.1" value="0"></div>
+  <div class="field"><label>Importe solicitado (M€)</label><input type="number" id="importe" step="0.1" value="0" oninput="updateLtvIndicator()"></div>
   <div class="field"><label>Plazo (años)</label><input type="number" id="plazo" step="1" value="5"></div>
   <div class="field"><label>Tipo interés (%)</label><input type="number" id="tipo_int" step="0.1" value="6"></div>
-  <div class="field"><label>Valor colateral (M€)</label><input type="number" id="colateral" step="0.1" value="0"></div>
+
+  <hr class="sb-sep">
+  <!-- Colateral -->
+  <div class="sb-sec">Colateral</div>
+  <div class="field"><label>Valor colateral (M€)</label><input type="number" id="colateral" step="0.1" value="0" oninput="updateLtvIndicator()"></div>
   <div class="field">
     <label>Tipo colateral</label>
-    <select id="tipo_col">
-      <option value="inmueble">Inmueble (LTV max 60%)</option>
-      <option value="maquinaria">Maquinaria (LTV max 40%)</option>
-      <option value="cuentas_cobrar">Cuentas a cobrar (LTV max 70%)</option>
+    <select id="tipo_col" onchange="updateLtvIndicator()">
+      <option value="inmueble">Inmueble (LTV máx. 60%)</option>
+      <option value="maquinaria">Maquinaria (LTV máx. 40%)</option>
+      <option value="cuentas_cobrar">Cuentas a cobrar (LTV máx. 70%)</option>
+      <option value="stock">Stock (LTV máx. 50%)</option>
+      <option value="mixto">Mixto (LTV máx. 55%)</option>
       <option value="ninguno">Sin colateral</option>
     </select>
   </div>
+  <div id="ltv-indicator" class="ltv-indicator"></div>
 
   <hr class="sb-sep">
   <!-- Cualitativos -->
@@ -738,10 +756,15 @@ function linScore(v, pts) {
   return 0;
 }
 
+// LTV max by collateral type (shared across calc functions)
+const LTV_MAX = { inmueble:60, maquinaria:40, cuentas_cobrar:70, stock:50, mixto:55, ninguno:null };
+
 const SCORE_FNS = {
-  dscr:          v => linScore(v, [[0,0],[1.0,40],[1.5,80],[2.5,100]]),
+  // DSCR: Rojo<1.0x(0-19), Naranja 1.0-1.2x(20-49), Amarillo 1.2-1.5x(50-79), Verde>1.5x(80-100)
+  dscr:          v => linScore(v, [[0,0],[1.0,19],[1.2,49],[1.5,80],[2.5,100]]),
   deuda_ebitda:  v => v < 0 ? 100 : linScore(v, [[0,100],[2.5,80],[4.0,40],[7.0,0]]),
-  llcr:          v => linScore(v, [[0.5,0],[1.2,40],[1.4,80],[2.0,100]]),
+  // LLCR: Rojo<1.2x(0-39), Amarillo 1.2-1.4x(40-79), Verde>1.4x(80-100)
+  llcr:          v => linScore(v, [[0.5,0],[1.2,39],[1.4,80],[2.0,100]]),
   ebitda_margin: v => linScore(v, [[-5,0],[0,10],[8,40],[15,80],[25,100]]),
   ltv:           v => v === null ? 55 : linScore(v, [[0,100],[50,80],[70,40],[100,0]]),
   ffo_dfn:       v => linScore(v, [[0,10],[15,40],[20,80],[35,100]]),
@@ -796,7 +819,6 @@ function calcRatios(d) {
 
   // LTV
   let ltv = null;
-  const ltvMax = { inmueble: 60, maquinaria: 40, cuentas_cobrar: 70, ninguno: null };
   if (d.colateral > 0 && d.importe > 0) {
     ltv = (d.importe / d.colateral) * 100;
   }
@@ -821,7 +843,7 @@ function calcScores(r) {
     const val = r[key] !== undefined ? r[key] : null;
     const sc  = SCORE_FNS[key](val);
     const contrib = sc * cfg.peso / 100;
-    const color   = sc >= 70 ? 'verde' : sc >= 40 ? 'amarillo' : 'rojo';
+    const color   = sc >= 80 ? 'verde' : sc >= 50 ? 'amarillo' : sc >= 20 ? 'naranja' : 'rojo';
     res[key] = { valor: val, puntuacion: sc, peso: cfg.peso, contrib, color,
                  nombre: cfg.nombre, gating: cfg.gating };
   }
@@ -833,7 +855,9 @@ function totalScore(res) {
 }
 
 function checkGating(res) {
-  const dscrFails = res.dscr.puntuacion < 40;
+  // DSCR < 1.0x → score 0-19 → auto-reject (principal gate)
+  const dscrFails = res.dscr.puntuacion < 20;
+  // DFN/EBITDA > 4.0x → score < 40 → secondary gate
   const dfnFails  = res.deuda_ebitda.puntuacion < 40;
   if (dscrFails && dfnFails) return 'DSCR < 1.0x y DFN/EBITDA > 4.0x simultáneamente: doble incumplimiento de métricas de exclusión. Operación rechazada automáticamente independientemente del score total.';
   if (dscrFails) return 'DSCR < 1.0x: el CFADS no cubre el servicio de la deuda. Umbral mínimo absoluto incumplido. Operación rechazada automáticamente.';
@@ -858,8 +882,7 @@ function calcNuevaDeuda(d, r) {
   const maxNew    = headroom > 0 ? Math.max(headroom / (rate + 1/n), 0) : 0;
 
   // LTV check
-  const ltvMaxMap = { inmueble: 60, maquinaria: 40, cuentas_cobrar: 70, ninguno: null };
-  const ltvMaxPct = ltvMaxMap[d.tipo_col];
+  const ltvMaxPct = LTV_MAX[d.tipo_col] || null;
   const ltvOk     = r.ltv !== null && ltvMaxPct !== null ? r.ltv <= ltvMaxPct : true;
 
   return { newDS, combDSCR, fits, maxNew, ltvOk, ltvMaxPct };
@@ -889,6 +912,78 @@ function readInputs() {
 // RENDER
 // ═══════════════════════════════════════════════════════════════
 let _currentData = null;
+
+// ── Specific improvement text for ANALIZAR MÁS ──
+function buildImprovementText(r, res) {
+  // For each key metric, define: nextTarget if below verde, direction
+  const checks = [
+    {
+      key: 'dscr', val: r.dscr, label: 'DSCR',
+      thresholds: [{v:1.0,lbl:'1.0x (naranja)'},{v:1.2,lbl:'1.2x (amarillo)'},{v:1.5,lbl:'1.5x (verde)'}],
+      fmt: v => v.toFixed(2)+'x', dir: 'higher'
+    },
+    {
+      key: 'llcr', val: r.llcr, label: 'LLCR',
+      thresholds: [{v:1.2,lbl:'1.2x (amarillo)'},{v:1.4,lbl:'1.4x (verde)'}],
+      fmt: v => v.toFixed(2)+'x', dir: 'higher'
+    },
+    {
+      key: 'deuda_ebitda', val: r.deuda_ebitda < 0 ? 0 : r.deuda_ebitda, label: 'DFN/EBITDA',
+      thresholds: [{v:4.0,lbl:'4.0x'},{v:2.5,lbl:'2.5x (verde)'}],
+      fmt: v => v.toFixed(2)+'x', dir: 'lower'
+    },
+    {
+      key: 'ebitda_margin', val: r.ebitda_margin, label: 'Margen EBITDA',
+      thresholds: [{v:8,lbl:'8%'},{v:15,lbl:'15% (verde)'}],
+      fmt: v => v.toFixed(1)+'%', dir: 'higher'
+    },
+    {
+      key: 'ffo_dfn', val: r.ffo_dfn, label: 'FFO/DFN',
+      thresholds: [{v:15,lbl:'15%'},{v:20,lbl:'20% (verde)'}],
+      fmt: v => v.toFixed(1)+'%', dir: 'higher'
+    },
+  ];
+
+  const improvements = [];
+  for (const c of checks) {
+    if (res[c.key].puntuacion >= 80) continue; // ya verde, skip
+    let target = null;
+    if (c.dir === 'higher') {
+      for (const t of c.thresholds) { if (c.val < t.v) { target = t; break; } }
+    } else {
+      for (const t of c.thresholds) { if (c.val > t.v) { target = t; break; } }
+    }
+    if (!target) continue;
+    const pct = c.dir === 'higher'
+      ? Math.abs((target.v - c.val) / Math.max(Math.abs(c.val), 0.001) * 100).toFixed(0)
+      : Math.abs((c.val - target.v) / Math.max(Math.abs(target.v), 0.001) * 100).toFixed(0);
+    const arrow = c.dir === 'higher' ? '↑' : '↓';
+    improvements.push(`${c.label} actual ${c.fmt(c.val)} — necesita ${c.dir === 'higher' ? 'subir' : 'bajar'} a ${target.lbl} (${arrow}${pct}%)`);
+    if (improvements.length >= 3) break;
+  }
+
+  return improvements.length > 0
+    ? improvements.join('. ') + '.'
+    : 'Revisar ratios de cobertura y apalancamiento.';
+}
+
+// ── Sidebar LTV indicator ──
+function updateLtvIndicator() {
+  const importe  = parseFloat(document.getElementById('importe').value) || 0;
+  const colateral= parseFloat(document.getElementById('colateral').value) || 0;
+  const tipocol  = document.getElementById('tipo_col').value;
+  const ind      = document.getElementById('ltv-indicator');
+  if (!ind) return;
+  if (importe <= 0 || colateral <= 0 || tipocol === 'ninguno') {
+    ind.className = 'ltv-indicator'; ind.textContent = ''; return;
+  }
+  const ltvCalc = (importe / colateral * 100).toFixed(1);
+  const ltvMax  = LTV_MAX[tipocol];
+  if (!ltvMax) { ind.className = 'ltv-indicator'; return; }
+  const ok = parseFloat(ltvCalc) <= ltvMax;
+  ind.className = 'ltv-indicator ' + (ok ? 'ltv-ok' : 'ltv-bad');
+  ind.textContent = `LTV ${ltvCalc}% ${ok ? '✓' : '✗'} (máx. ${ltvMax}%)`;
+}
 
 function update() {
   const d = readInputs();
@@ -954,7 +1049,9 @@ function renderScoring(d, r, res, score, gate) {
   // Stacked bar
   const labels = Object.values(res).map(v => v.nombre);
   const contribs = Object.values(res).map(v => +v.contrib.toFixed(2));
-  const colors   = Object.values(res).map(v => v.color === 'verde' ? '#22c55e' : v.color === 'amarillo' ? '#f59e0b' : '#ef4444');
+  const colors   = Object.values(res).map(v =>
+    v.color === 'verde' ? '#22c55e' : v.color === 'amarillo' ? '#f59e0b' :
+    v.color === 'naranja' ? '#f97316' : '#ef4444');
   Plotly.react('bar-chart', [{
     type:'bar', orientation:'h',
     x: contribs, y: labels,
@@ -985,7 +1082,7 @@ function renderScoring(d, r, res, score, gate) {
   } else if (score >= 40) {
     recBanner.className += 'amarillo';
     icon = '⚠️'; decision = 'ANALIZAR MÁS';
-    text = `Score ${score}/100 — Perfil de riesgo moderado con alertas. Ampliar due diligence financiera y operativa. Exigir covenants reforzados, colateral adicional y posiblemente amortización acelerada. Pricing ajustado al riesgo identificado.`;
+    text = `Score ${score}/100 — Perfil de riesgo moderado con alertas. ${buildImprovementText(r, res)} Ampliar due diligence y exigir covenants reforzados.`;
   } else {
     recBanner.className += 'rojo';
     icon = '❌'; decision = 'RECHAZAR';
@@ -1122,10 +1219,10 @@ function renderNuevaDeuda(d, r, nd) {
 
   // ── LTV ──
   if (d.colateral > 0 && d.importe > 0 && r.ltv !== null) {
-    const ltvMax    = {inmueble:60, maquinaria:40, cuentas_cobrar:70, ninguno:null}[d.tipo_col];
+    const ltvMax    = LTV_MAX[d.tipo_col] || null;
     const ltvStatus = ltvMax ? (r.ltv <= ltvMax ? 'nd-ok' : 'nd-bad') : 'nd-warn';
     const ltvTxt    = ltvMax
-      ? (r.ltv <= ltvMax ? `✓ Dentro del límite (max ${ltvMax}%)` : `✗ Supera límite ${ltvMax}% para ${d.tipo_col}`)
+      ? (r.ltv <= ltvMax ? `✓ Dentro del límite (máx. ${ltvMax}%)` : `✗ Supera límite ${ltvMax}% para ${d.tipo_col}`)
       : 'Sin límite definido';
     ndLtv.innerHTML = `
       <div class="nd-row"><span class="nd-lbl">Tipo de colateral</span><span class="nd-val">${d.tipo_col}</span></div>
@@ -1285,8 +1382,9 @@ function renderDetalle(res, score) {
   let rows = '';
   for (const [key, rv] of Object.entries(res)) {
     const valStr = fmtValMap[key] ? fmtValMap[key](rv.valor) : rv.valor;
-    const badge  = rv.color === 'verde' ? `<span class="badge-v">VERDE</span>` :
+    const badge  = rv.color === 'verde'   ? `<span class="badge-v">VERDE</span>` :
                    rv.color === 'amarillo' ? `<span class="badge-a">AMARILLO</span>` :
+                   rv.color === 'naranja'  ? `<span class="badge-n">NARANJA</span>` :
                    `<span class="badge-r">ROJO</span>`;
     const gateBadge = rv.gating ? `<span class="badge-g">GATE</span> ` : '';
     rows += `<tr>
@@ -1309,7 +1407,7 @@ function renderDetalle(res, score) {
   const finalColor = finalScore >= 70 ? '#22c55e' : finalScore >= 40 ? '#f59e0b' : '#ef4444';
   setText('det-total', `<span style="font-size:1.1rem;color:${finalColor};">${finalScore} / 100</span>`);
   const semC = finalScore >= 70 ? 'badge-v' : finalScore >= 40 ? 'badge-a' : 'badge-r';
-  const semT = finalScore >= 70 ? 'VERDE' : finalScore >= 40 ? 'AMARILLO' : 'ROJO';
+  const semT = finalScore >= 70 ? 'VERDE'   : finalScore >= 40 ? 'AMARILLO' : 'ROJO';
   document.getElementById('det-semaforo').innerHTML = `<span class="${semC}">${semT}</span>`;
 }
 

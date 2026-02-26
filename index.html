@@ -426,17 +426,77 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
 
 /* ── Print ── */
 @media print {
-  #pdf-cover, #pdf-summary, #pdf-legal { display: flex !important; position: relative;
-               width: 100vw; height: 100vh; page-break-after: always; }
-  #sidebar { display: none; }
-  body { overflow: auto; display: block; background: var(--bg); }
-  #main { overflow: visible; padding: 1rem; }
-  .tabs { display: none; }
-  .section { display: block !important; page-break-inside: avoid; margin-bottom: 2rem; }
-  .section::before { content: attr(data-title); font-size: 1rem; font-weight: 800;
-                     color: var(--text); display: block; margin-bottom: .8rem;
-                     border-bottom: 2px solid var(--border); padding-bottom: .3rem; }
-  .print-header { display: flex !important; }
+  @page { size: A4 portrait; margin: 1.8cm 2cm; }
+
+  /* Force background and colour-accurate printing */
+  *, *::before, *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Full-page cover / summary / legal */
+  #pdf-cover, #pdf-summary, #pdf-legal {
+    display: flex !important;
+    position: relative !important;
+    width: 100% !important; height: 100vh !important;
+    page-break-after: always !important; break-after: page !important;
+    padding: 3rem 4rem !important;
+    box-sizing: border-box !important;
+  }
+
+  #sidebar { display: none !important; }
+  body { overflow: auto; display: block; background: #0a0a0f; color: #f0f0f5; }
+  #main { overflow: visible; padding: 0.5rem 1.2rem; width: 100%; }
+  .tabs, .action-btn, .reset-btn, .pdf-btn, .pdf-upload-btn { display: none !important; }
+  .print-header { display: flex !important; margin-bottom: .8rem; }
+
+  /* Each section begins on a fresh page */
+  .section { display: block !important; margin-bottom: 0; }
+  #tab-scoring { page-break-before: avoid; }
+  #tab-wc, #tab-nueva_deuda, #tab-comparables,
+  #tab-covenants, #tab-colateral, #tab-detalle {
+    page-break-before: always; break-before: page;
+  }
+
+  /* Section heading injected via CSS */
+  .section::before {
+    content: attr(data-title);
+    display: block;
+    font-size: .65rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: .14em; color: #c9a84c;
+    border-bottom: 1px solid #1f1f2e; padding-bottom: .45rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Keep individual cards on same page */
+  .card { page-break-inside: avoid !important; break-inside: avoid !important;
+          margin-bottom: .7rem !important; }
+  .ratio-tile, .kpi, .risk-card, .cov-card, .nd-result, .rec-banner {
+    page-break-inside: avoid !important; break-inside: avoid !important;
+  }
+
+  /* Compact grids in print */
+  .ratio-grid  { grid-template-columns: repeat(4, 1fr) !important; gap: .45rem !important; }
+  .kpi-strip   { grid-template-columns: repeat(4, 1fr) !important; gap: .6rem !important; }
+  .score-row   { grid-template-columns: 200px 1fr !important; gap: .8rem !important; }
+  .chart-grid  { grid-template-columns: 1fr 1fr !important; gap: .8rem !important; }
+  .risk-grid   { grid-template-columns: repeat(3, 1fr) !important; gap: .5rem !important; }
+  .cov-grid    { grid-template-columns: repeat(3, 1fr) !important; gap: .5rem !important; }
+
+  /* Fixed chart heights — prevents overflow and cut-off */
+  #bar-chart      { height: 240px !important; min-height: 240px !important; }
+  #radar-chart    { height: 260px !important; min-height: 260px !important; }
+  #wc-cycle-chart { height: 200px !important; min-height: 200px !important; }
+  #sect-chart     { height: 250px !important; min-height: 250px !important; }
+  #col-waterfall  { height: 230px !important; min-height: 230px !important; }
+
+  /* Score badge smaller in print */
+  .badge-wrap { height: 180px !important; }
+
+  /* Remove interactive shadows and outlines */
+  * { box-shadow: none !important; text-shadow: none !important; }
+  .ratio-tile:hover { transform: none !important; }
 }
 </style>
 </head>
@@ -1201,16 +1261,23 @@ function renderWorkingCapital(d, wc) {
   const colors = [pmcCls, pmaCls, 'verde', cicloCls].filter((_, i) => [true, wc.pma !== null, true, true][i])
     .map(c => c === 'verde' ? '#4caf7d' : c === 'amarillo' ? '#c9a84c' : c === 'rojo' ? '#e05252' : '#55556a');
   Plotly.react('wc-cycle-chart', [{ type:'bar', x:labels, y:vals, marker:{ color:colors },
-    text:vals.map(v => Math.round(v)+' d'), textposition:'outside' }], {
-    paper_bgcolor:'#111118', plot_bgcolor:'#111118', margin:{t:20,b:30,l:40,r:20},
-    yaxis:{ title:'Días', showgrid:true, gridcolor:'#1f1f2e' }, height:220
+    text:vals.map(v => Math.round(v)+' d'), textposition:'outside', textfont:{size:11,color:'#f0f0f5',family:'Inter,sans-serif'} }], {
+    paper_bgcolor:'#111118', plot_bgcolor:'#111118', margin:{t:30,b:10,l:50,r:20},
+    xaxis:{ showgrid:false, showline:false, tickfont:{size:11, color:'#f0f0f5', family:'Inter,sans-serif'} },
+    yaxis:{
+      title:{ text:'días', font:{size:10, color:'#55556a'} },
+      showgrid:false, zeroline:true, zerolinecolor:'rgba(31,31,46,0.9)',
+      showline:false, tickfont:{size:10, color:'#55556a', family:'Inter,sans-serif'}
+    },
+    font:{ family:'Inter,sans-serif' },
+    height:240
   }, { displayModeBar:false, responsive:true });
 
   // Summary
   summ.innerHTML = `
     <div class="wc-summary-row"><span class="nd-lbl">Fondo de Maniobra (FM)</span><span class="nd-val ${wc.fm>=0?'':''}"><b>${wc.fm.toFixed(2)} M€</b> — ${wc.fm>=0?'Positivo ✓':'Negativo ⚠'}</span></div>
     <div class="wc-summary-row"><span class="nd-lbl">Necesidades de FM (NFM)</span><span class="nd-val"><b>${wc.nfm.toFixed(2)} M€</b> (${wc.nfm_pct.toFixed(1)}% ventas)</span></div>
-    <div class="wc-summary-row"><span class="nd-lbl">Superávit / Déficit circulante</span><span class="nd-val" style="color:${wc.fm-wc.nfm>=0?'#15803d':'#dc2626'};"><b>${(wc.fm-wc.nfm).toFixed(2)} M€</b></span></div>
+    <div class="wc-summary-row"><span class="nd-lbl">Superávit / Déficit circulante</span><span class="nd-val" style="color:${wc.fm-wc.nfm>=0?'#4caf7d':'#e05252'};"><b>${(wc.fm-wc.nfm).toFixed(2)} M€</b></span></div>
     <div class="wc-summary-row"><span class="nd-lbl">Aprovisionamientos usados</span><span class="nd-val">${wc.aprov.toFixed(1)} M€ ${d.aprovisionamientos>0?'(declarado)':'(estimado 60% ventas)'}</span></div>`;
 }
 
@@ -1629,15 +1696,25 @@ function renderScoring(d, r, res, score, baseScore, gate, histPenalty) {
     type:'bar', orientation:'h',
     x: contribs, y: labels,
     marker: { color: colors },
-    text: contribs.map(v => v.toFixed(1)),
+    text: contribs.map(v => v.toFixed(1)+' pts'),
     textposition: 'outside',
+    textfont: { size: 11, color: '#f0f0f5', family: 'Inter,sans-serif' },
     hovertemplate: '%{y}: %{x:.1f} pts<extra></extra>'
   }], {
-    margin:{t:5,b:20,l:130,r:50},
+    margin:{t:8,b:8,l:155,r:65},
     paper_bgcolor:'#111118', plot_bgcolor:'#111118',
-    xaxis:{ range:[0, Math.max(...contribs)*1.35], showgrid:true, gridcolor:'#1f1f2e' },
-    yaxis:{ automargin:true, tickfont:{size:11} },
-    height:210
+    xaxis:{
+      range:[0, Math.max(...contribs)*1.45],
+      showgrid:false, zeroline:false, showline:false,
+      ticks:'', showticklabels:false
+    },
+    yaxis:{
+      automargin:true,
+      tickfont:{size:11, color:'#f0f0f5', family:'Inter,sans-serif'},
+      showgrid:false, zeroline:false, showline:false
+    },
+    font:{ family:'Inter,sans-serif', color:'#f0f0f5' },
+    height:240
   }, { displayModeBar:false, responsive:true });
 
   // Recommendation
@@ -1709,12 +1786,29 @@ function renderScoring(d, r, res, score, baseScore, gate, histPenalty) {
   Plotly.react('radar-chart', [{
     type:'scatterpolar', mode:'lines+markers',
     r: [...scores, scores[0]], theta: [...names, names[0]],
-    fill:'toself', fillcolor:'rgba(201,168,76,0.10)',
-    line:{ color:'#c9a84c', width:2 },
-    marker:{ color:'#c9a84c', size:6 }
+    fill:'toself', fillcolor:'rgba(201,168,76,0.08)',
+    line:{ color:'#c9a84c', width:1.5 },
+    marker:{ color:'#c9a84c', size:3, opacity:0.6 }
   }], {
-    polar:{ radialaxis:{range:[0,100],tickfont:{size:9}}, bgcolor:'#111118' },
-    paper_bgcolor:'#111118', margin:{t:20,b:20,l:50,r:50}, height:300
+    polar:{
+      radialaxis:{
+        range:[0,100],
+        tickfont:{size:8, color:'#55556a', family:'Inter,sans-serif'},
+        gridcolor:'rgba(31,31,46,0.6)',
+        showline:false,
+        tickvals:[20,40,60,80,100]
+      },
+      angularaxis:{
+        showgrid:false,
+        showline:false,
+        tickfont:{size:9, color:'#c9a84c', family:'Inter,sans-serif'}
+      },
+      bgcolor:'#111118'
+    },
+    paper_bgcolor:'#111118',
+    margin:{t:35,b:35,l:65,r:65},
+    height:320,
+    font:{ family:'Inter,sans-serif', color:'#f0f0f5' }
   }, { displayModeBar:false, responsive:true });
 
   // Top 3 risks
@@ -1758,7 +1852,7 @@ function renderNuevaDeuda(d, r, nd) {
     <div class="nd-row"><span class="nd-lbl">Servicio deuda actual / año</span><span class="nd-val">${r.debt_svc.toFixed(2)} M€</span></div>
     <div class="nd-row"><span class="nd-lbl">DSCR actual</span><span class="nd-val">${r.dscr.toFixed(2)}x</span></div>
     <div class="nd-row"><span class="nd-lbl">Importe máx. financiable (DSCR = 1.25x)</span>
-      <span class="nd-val" style="color:${maxNew > 0 ? '#15803d' : '#991b1b'};font-size:1rem;">
+      <span class="nd-val" style="color:${maxNew > 0 ? '#4caf7d' : '#e05252'};font-size:1rem;">
         ${maxNew > 0 ? maxNew.toFixed(2)+' M€' : 'Capacidad agotada'}
       </span>
     </div>
@@ -1772,7 +1866,7 @@ function renderNuevaDeuda(d, r, nd) {
         Introduce el importe, plazo y tipo de interés en el panel lateral para analizar la operación concreta.
       </p>
       <div class="nd-row"><span class="nd-lbl">Capacidad adicional estimada</span>
-        <span class="nd-val" style="color:${maxNew>0?'#15803d':'#991b1b'};">
+        <span class="nd-val" style="color:${maxNew>0?'#4caf7d':'#e05252'};">
           ${maxNew > 0 ? '≈ '+maxNew.toFixed(2)+' M€ disponibles' : 'Sin capacidad adicional'}
         </span>
       </div>`;
@@ -1865,22 +1959,28 @@ function renderComparables(d, r) {
       x: categories, y: companyVals,
       marker:{ color:'#c9a84c' },
       text: companyVals.map((v,i) => metrics[i].fmt(v)),
-      textposition:'outside'
+      textposition:'outside', textfont:{size:10,color:'#f0f0f5',family:'Inter,sans-serif'}
     },
     {
       type:'bar', name:'Mediana sector',
       x: categories, y: medVals,
       marker:{ color:'#55556a' },
       text: medVals.map((v,i) => metrics[i].fmt(v)),
-      textposition:'outside'
+      textposition:'outside', textfont:{size:10,color:'#f0f0f5',family:'Inter,sans-serif'}
     }
   ], {
     barmode:'group',
     paper_bgcolor:'#111118', plot_bgcolor:'#111118',
-    legend:{ orientation:'h', y:1.15 },
-    margin:{ t:30,b:40,l:40,r:20 },
-    height:280,
-    yaxis:{ showgrid:true, gridcolor:'#1f1f2e' }
+    legend:{
+      orientation:'h', y:1.22,
+      font:{size:11, color:'#f0f0f5', family:'Inter,sans-serif'},
+      bgcolor:'rgba(0,0,0,0)', borderwidth:0
+    },
+    margin:{ t:48,b:10,l:50,r:20 },
+    height:300,
+    xaxis:{ showgrid:false, showline:false, tickfont:{size:11, color:'#f0f0f5', family:'Inter,sans-serif'} },
+    yaxis:{ showgrid:false, zeroline:false, showline:false, tickfont:{size:10, color:'#55556a', family:'Inter,sans-serif'} },
+    font:{ family:'Inter,sans-serif', color:'#f0f0f5' }
   }, { displayModeBar:false, responsive:true });
 }
 
@@ -2296,16 +2396,26 @@ function recalcColateral() {
   const perdida = Math.max(importe - totalPV, 0);
   Plotly.react('col-waterfall', [
     { type:'bar', name:'Deuda prestada',       x:['Deuda prestada'],       y:[importe],
-      marker:{color:'#c9a84c'}, text:[importe.toFixed(2)+' M€'], textposition:'outside' },
+      marker:{color:'#c9a84c'}, text:[importe.toFixed(2)+' M€'], textposition:'outside', textfont:{size:11,color:'#f0f0f5',family:'Inter,sans-serif'} },
     { type:'bar', name:'Recovery esperado (PV)',x:['Recovery esperado (PV)'],y:[totalPV],
-      marker:{color:'#22c55e'}, text:[totalPV.toFixed(2)+' M€ ('+recRate.toFixed(0)+'%)'], textposition:'outside' },
+      marker:{color:'#4caf7d'}, text:[totalPV.toFixed(2)+' M€ ('+recRate.toFixed(0)+'%)'], textposition:'outside', textfont:{size:11,color:'#f0f0f5',family:'Inter,sans-serif'} },
     { type:'bar', name:'Pérdida esperada (EL)', x:['Pérdida esperada (EL)'],y:[expLoss],
-      marker:{color:'#ef4444'}, text:[expLoss.toFixed(3)+' M€'], textposition:'outside' },
+      marker:{color:'#e05252'}, text:[expLoss.toFixed(3)+' M€'], textposition:'outside', textfont:{size:11,color:'#f0f0f5',family:'Inter,sans-serif'} },
   ], {
     barmode:'group', paper_bgcolor:'#111118', plot_bgcolor:'#111118',
-    legend:{ orientation:'h', y:1.2 },
-    yaxis:{ title:'M€', gridcolor:'#1f1f2e', showgrid:true },
-    margin:{ t:40,b:40,l:60,r:20 }, height:300,
+    legend:{
+      orientation:'h', y:1.22,
+      font:{size:11, color:'#f0f0f5', family:'Inter,sans-serif'},
+      bgcolor:'rgba(0,0,0,0)', borderwidth:0
+    },
+    xaxis:{ showgrid:false, showline:false, tickfont:{size:11, color:'#f0f0f5', family:'Inter,sans-serif'} },
+    yaxis:{
+      title:{ text:'M€', font:{size:10, color:'#55556a'} },
+      showgrid:false, zeroline:false, showline:false,
+      tickfont:{size:10, color:'#55556a', family:'Inter,sans-serif'}
+    },
+    margin:{ t:55,b:10,l:60,r:20 }, height:300,
+    font:{ family:'Inter,sans-serif', color:'#f0f0f5' }
   }, { displayModeBar:false, responsive:true });
 
   // ── Priority table ──
@@ -2382,22 +2492,41 @@ function exportPDF() {
   tabs.forEach(t => t.style.display = 'none');
   pHeaders.forEach(h => h.style.display = 'flex');
 
-  window.print();
+  // Resize all Plotly charts synchronously before printing
+  const CHART_IDS = ['bar-chart','radar-chart','wc-cycle-chart','sect-chart','col-waterfall'];
+  CHART_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.data) {
+      try { Plotly.relayout(el, { autosize: false, width: 680, height: 260 }); } catch(e) {}
+    }
+  });
 
-  // Restore after print dialog closes
+  // Small delay so charts can re-render before browser prints
   setTimeout(() => {
-    [cover, summary, legal].forEach(p => {
-      if (!p) return;
-      p.style.display  = 'none';
-      p.style.position = '';
-      p.style.width    = '';
-      p.style.height   = '';
-    });
-    sections.forEach(s => s.style.display = '');
-    tabs.forEach(t => t.style.display = '');
-    pHeaders.forEach(h => h.style.display = 'none');
-    document.querySelectorAll('.section.active').forEach(s => s.style.display = 'block');
-  }, 1200);
+    window.print();
+
+    // Restore after print dialog closes
+    setTimeout(() => {
+      [cover, summary, legal].forEach(p => {
+        if (!p) return;
+        p.style.display  = 'none';
+        p.style.position = '';
+        p.style.width    = '';
+        p.style.height   = '';
+      });
+      sections.forEach(s => s.style.display = '');
+      tabs.forEach(t => t.style.display = '');
+      pHeaders.forEach(h => h.style.display = 'none');
+      document.querySelectorAll('.section.active').forEach(s => s.style.display = 'block');
+      // Restore chart responsiveness
+      CHART_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.data) {
+          try { Plotly.relayout(el, { autosize: true, width: null, height: null }); } catch(e) {}
+        }
+      });
+    }, 1500);
+  }, 400);
 }
 
 // ── Init ──

@@ -8,99 +8,118 @@
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js" charset="utf-8"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <style>
+/* ── Root theme variables ── */
+:root {
+  --bg:          #0a0a0f;
+  --surface:     #111118;
+  --surface2:    #18181f;
+  --border:      #1f1f2e;
+  --accent:      #c9a84c;
+  --accent2:     #e8c97a;
+  --text:        #f0f0f5;
+  --text-muted:  #55556a;
+  --verde:       #4caf7d;
+  --amarillo:    #c9a84c;
+  --naranja:     #e07b39;
+  --rojo:        #e05252;
+}
+
 /* ── Reset & base ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: #F7F8FA; color: #0f172a;
+body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text);
        display: flex; height: 100vh; overflow: hidden; }
 
 /* ── Sidebar ── */
 #sidebar {
-  width: 300px; min-width: 300px; background: #0c2340;
+  width: 300px; min-width: 300px; background: var(--surface);
   height: 100vh; overflow-y: auto; padding: 1.4rem 1.2rem;
   display: flex; flex-direction: column; gap: 0; flex-shrink: 0;
+  border-right: 1px solid var(--border);
 }
 #sidebar::-webkit-scrollbar { width: 4px; }
-#sidebar::-webkit-scrollbar-thumb { background: #1e4976; border-radius: 4px; }
+#sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
-.sb-logo { color: white; font-size: 1.1rem; font-weight: 800; margin-bottom: .15rem; }
-.sb-sub  { color: #5a8fb5; font-size: .72rem; font-weight: 600;
+.sb-logo { color: var(--text); font-size: 1.1rem; font-weight: 800; margin-bottom: .15rem; }
+.sb-sub  { color: var(--text-muted); font-size: .72rem; font-weight: 600;
            text-transform: uppercase; letter-spacing: .8px; margin-bottom: 1rem; }
-.sb-sep  { border: none; border-top: 1px solid #1e4976; margin: .9rem 0; }
+.sb-sep  { border: none; border-top: 1px solid var(--border); margin: .9rem 0; }
 .sb-sec  { font-size: .65rem; font-weight: 700; text-transform: uppercase;
-           letter-spacing: .8px; color: #5a8fb5; margin-bottom: .6rem;
-           padding-bottom: .3rem; border-bottom: 1px solid #1e4976; }
+           letter-spacing: .8px; color: var(--text-muted); margin-bottom: .6rem;
+           padding-bottom: .3rem; border-bottom: 1px solid var(--border); }
 
 .field   { margin-bottom: .7rem; }
-.field label { display: block; font-size: .68rem; font-weight: 700; color: #7eb8d8;
-               text-transform: uppercase; letter-spacing: .5px; margin-bottom: .3rem; }
+.field label { display: block; font-size: .68rem; font-weight: 700; color: var(--text-muted);
+               text-transform: uppercase; letter-spacing: .08em; margin-bottom: .3rem; }
 .field input, .field select {
-  width: 100%; background: #163456; color: white; border: 1px solid #2a5580;
+  width: 100%; background: var(--surface2); color: var(--text); border: 1px solid var(--border);
   border-radius: 6px; padding: .35rem .5rem; font-size: .85rem; outline: none;
 }
-.field input:focus, .field select:focus { border-color: #3b82f6; }
-.field select option { background: #163456; color: white; }
+.field input:focus, .field select:focus { border-color: var(--accent); }
+.field select option { background: var(--surface2); color: var(--text); }
 
 /* Example buttons */
 .ex-btns { display: flex; gap: .4rem; margin-bottom: .5rem; flex-wrap: wrap; }
-.ex-btn  { flex: 1; min-width: 60px; background: #1e4976; color: #c8dff0; border: none; border-radius: 6px;
+.ex-btn  { flex: 1; min-width: 60px; background: var(--surface2); color: var(--text-muted);
+           border: 1px solid var(--border); border-radius: 6px;
            padding: .45rem .3rem; font-size: .75rem; font-weight: 700; cursor: pointer;
-           transition: background .15s; }
-.ex-btn:hover { background: #2563ab; color: white; }
+           transition: all .15s; }
+.ex-btn:hover { border-color: var(--accent); color: var(--accent); }
 
 /* Action buttons */
-.action-btn { width: 100%; margin-top: .5rem; background: #1d4ed8;
-              color: white; border: none; border-radius: 6px;
+.action-btn { width: 100%; margin-top: .5rem; background: var(--accent);
+              color: #0a0a0f; border: none; border-radius: 6px;
               padding: .55rem; font-size: .85rem; font-weight: 700; cursor: pointer;
               transition: background .15s; }
-.action-btn:hover { background: #1e40af; }
+.action-btn:hover { background: var(--accent2); }
 .reset-btn  { width: 100%; margin-top: .4rem; background: transparent;
-              color: #5a8fb5; border: 1px solid #1e4976; border-radius: 6px;
+              color: var(--text-muted); border: 1px solid var(--border); border-radius: 6px;
               padding: .45rem; font-size: .82rem; font-weight: 600; cursor: pointer;
               transition: all .15s; }
-.reset-btn:hover { background: #1e4976; color: #c8dff0; }
+.reset-btn:hover { border-color: var(--accent); color: var(--accent); }
 
 /* ── Main ── */
 #main { flex: 1; overflow-y: auto; padding: 1.5rem 1.8rem; }
 #main::-webkit-scrollbar { width: 6px; }
-#main::-webkit-scrollbar-thumb { background: #c7d8eb; border-radius: 4px; }
+#main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
 .main-header { display: flex; justify-content: space-between; align-items: flex-start;
                margin-bottom: 1.5rem; }
-.main-header h1 { font-size: 1.55rem; font-weight: 800; color: #0c2340; }
-.main-header p  { font-size: .82rem; color: #64748b; margin-top: .2rem; }
+.main-header h1 { font-size: 1.55rem; font-weight: 800; color: var(--text); }
+.main-header p  { font-size: .82rem; color: var(--text-muted); margin-top: .2rem; }
 
 /* ── Section tabs ── */
 .tabs { display: flex; gap: .5rem; margin-bottom: 1.4rem; flex-wrap: wrap; }
 .tab  { padding: .45rem 1.1rem; border-radius: 20px; font-size: .8rem; font-weight: 700;
         cursor: pointer; border: 2px solid transparent; transition: all .2s; }
-.tab.active  { background: #1d4ed8; color: white; }
-.tab.inactive{ background: white; color: #475569; border-color: #e2e8f0; }
-.tab.inactive:hover { border-color: #1d4ed8; color: #1d4ed8; }
+.tab.active  { background: var(--accent); color: #0a0a0f; border-color: var(--accent); }
+.tab.inactive{ background: var(--surface); color: var(--text-muted); border-color: var(--border); }
+.tab.inactive:hover { border-color: var(--accent); color: var(--accent); }
 
 .section { display: none; }
 .section.active { display: block; }
 
 /* ── Gating Banner ── */
 .gating-banner {
-  background: linear-gradient(135deg, #7f1d1d, #991b1b);
+  background: linear-gradient(135deg, #1a0505, #2d0909);
+  border: 1px solid rgba(224,82,82,.25);
   border-radius: 12px; padding: 1rem 1.4rem;
   margin-bottom: 1.5rem; display: none;
   animation: fadeIn .4s ease;
 }
 .gating-banner.visible { display: block; }
 .gating-banner .g-title { font-size: .75rem; font-weight: 800; text-transform: uppercase;
-                           letter-spacing: 1px; color: #fca5a5; margin-bottom: .4rem; }
-.gating-banner .g-text  { font-size: .95rem; font-weight: 700; color: white; line-height: 1.5; }
+                           letter-spacing: 1px; color: var(--rojo); margin-bottom: .4rem; }
+.gating-banner .g-text  { font-size: .95rem; font-weight: 700; color: var(--text); line-height: 1.5; }
 
 /* ── KPI strip ── */
 .kpi-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px,1fr));
              gap: 1rem; margin-bottom: 1.4rem; }
-.kpi { background: white; border-radius: 12px; padding: 1rem 1.1rem;
-       box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+.kpi { background: var(--surface); border-radius: 12px; padding: 1rem 1.1rem;
+       border: 1px solid var(--border); }
 .kpi .k-label { font-size: .68rem; font-weight: 700; text-transform: uppercase;
-                letter-spacing: .6px; color: #64748b; margin-bottom: .3rem; }
-.kpi .k-value { font-size: 1.55rem; font-weight: 800; color: #0c2340; line-height: 1; }
-.kpi .k-sub   { font-size: .72rem; color: #94a3b8; margin-top: .2rem; }
+                letter-spacing: .6px; color: var(--text-muted); margin-bottom: .3rem; }
+.kpi .k-value { font-size: 1.55rem; font-weight: 800; color: var(--text); line-height: 1; }
+.kpi .k-sub   { font-size: .72rem; color: var(--text-muted); margin-top: .2rem; }
 
 /* ── Score row ── */
 .score-row { display: grid; grid-template-columns: 260px 1fr; gap: 1.2rem;
@@ -112,281 +131,311 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: #F7F8FA;
               margin-bottom: 1.4rem; }
 @media (max-width: 820px) { .chart-grid { grid-template-columns: 1fr; } }
 
-.card { background: white; border-radius: 14px; padding: 1.2rem 1.4rem;
-        box-shadow: 0 1px 6px rgba(0,0,0,.07); }
+.card { background: var(--surface); border-radius: 14px; padding: 1.2rem 1.4rem;
+        border: 1px solid var(--border); }
 .card-title { font-size: .78rem; font-weight: 700; text-transform: uppercase;
-              letter-spacing: .6px; color: #64748b; margin-bottom: 1rem; }
+              letter-spacing: .6px; color: var(--text-muted); margin-bottom: 1rem; }
 
 /* ── Ratio tiles ── */
 .ratio-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr));
               gap: .8rem; margin-bottom: 1.4rem; }
-.ratio-tile { background: white; border-radius: 10px; padding: .85rem 1rem;
-              box-shadow: 0 1px 4px rgba(0,0,0,.07); border-top: 3px solid #e2e8f0;
+.ratio-tile { background: var(--surface); border-radius: 10px; padding: .85rem 1rem;
+              border: 1px solid var(--border); border-left: 3px solid var(--border);
               transition: transform .15s; }
 .ratio-tile:hover { transform: translateY(-2px); }
-.ratio-tile.verde   { border-top-color: #22c55e; }
-.ratio-tile.amarillo{ border-top-color: #f59e0b; }
-.ratio-tile.naranja { border-top-color: #f97316; }
-.ratio-tile.rojo    { border-top-color: #ef4444; }
+.ratio-tile.verde   { border-left-color: var(--verde); }
+.ratio-tile.amarillo{ border-left-color: var(--amarillo); }
+.ratio-tile.naranja { border-left-color: var(--naranja); }
+.ratio-tile.rojo    { border-left-color: var(--rojo); }
 .rt-label { font-size: .65rem; font-weight: 700; text-transform: uppercase;
-            letter-spacing: .5px; color: #64748b; }
-.rt-value { font-size: 1.4rem; font-weight: 800; color: #0c2340; margin: .2rem 0; }
-.rt-sub   { font-size: .7rem; color: #94a3b8; }
+            letter-spacing: .5px; color: var(--text-muted); }
+.rt-value { font-size: 1.4rem; font-weight: 800; color: var(--text); margin: .2rem 0; }
+.rt-sub   { font-size: .7rem; color: var(--text-muted); }
 .rt-score { font-size: .72rem; font-weight: 700; margin-top: .35rem;
             padding: .15rem .45rem; border-radius: 20px; display: inline-block; }
-.verde    .rt-score { background: #dcfce7; color: #15803d; }
-.amarillo .rt-score { background: #fef3c7; color: #92400e; }
-.naranja  .rt-score { background: #ffedd5; color: #9a3412; }
-.rojo     .rt-score { background: #fee2e2; color: #991b1b; }
+.verde    .rt-score { background: rgba(76,175,125,.15); color: var(--verde); }
+.amarillo .rt-score { background: rgba(201,168,76,.15); color: var(--amarillo); }
+.naranja  .rt-score { background: rgba(224,123,57,.15); color: var(--naranja); }
+.rojo     .rt-score { background: rgba(224,82,82,.15); color: var(--rojo); }
 
 /* LTV indicator in sidebar */
 .ltv-indicator { border-radius: 6px; padding: .4rem .6rem; margin-top: .3rem;
                  font-size: .75rem; font-weight: 700; display: none; }
-.ltv-ok   { background: #dcfce7; color: #15803d; display: block; }
-.ltv-warn { background: #fef3c7; color: #92400e; display: block; }
-.ltv-bad  { background: #fee2e2; color: #991b1b; display: block; }
+.ltv-ok   { background: rgba(76,175,125,.15); color: var(--verde); display: block; }
+.ltv-warn { background: rgba(201,168,76,.15); color: var(--amarillo); display: block; }
+.ltv-bad  { background: rgba(224,82,82,.15); color: var(--rojo); display: block; }
 .gating-badge { font-size: .6rem; font-weight: 800; text-transform: uppercase;
-                background: #fbbf24; color: #78350f; padding: .1rem .35rem;
+                background: rgba(201,168,76,.2); color: var(--accent); padding: .1rem .35rem;
                 border-radius: 4px; margin-left: .3rem; vertical-align: middle; }
 
 /* ── Recommendation banner ── */
 .rec-banner { border-radius: 14px; padding: 1.3rem 1.6rem; margin-bottom: 1.4rem;
               display: flex; align-items: flex-start; gap: 1.2rem; }
-.rec-banner.verde    { background: linear-gradient(135deg, #dcfce7, #bbf7d0); border-left: 5px solid #22c55e; }
-.rec-banner.amarillo { background: linear-gradient(135deg, #fef3c7, #fde68a); border-left: 5px solid #f59e0b; }
-.rec-banner.rojo     { background: linear-gradient(135deg, #fee2e2, #fecaca); border-left: 5px solid #ef4444; }
+.rec-banner.verde    { background: rgba(76,175,125,.07); border: 1px solid rgba(76,175,125,.2); border-left: 5px solid var(--verde); }
+.rec-banner.amarillo { background: rgba(201,168,76,.07); border: 1px solid rgba(201,168,76,.2); border-left: 5px solid var(--amarillo); }
+.rec-banner.rojo     { background: rgba(224,82,82,.07); border: 1px solid rgba(224,82,82,.2); border-left: 5px solid var(--rojo); }
 .rec-icon { font-size: 2.5rem; line-height: 1; }
 .rec-body .rec-label { font-size: .72rem; font-weight: 700; text-transform: uppercase;
-                        letter-spacing: .7px; color: #475569; margin-bottom: .25rem; }
+                        letter-spacing: .7px; color: var(--text-muted); margin-bottom: .25rem; }
 .rec-body .rec-decision { font-size: 1.5rem; font-weight: 900; margin-bottom: .3rem; }
-.verde .rec-decision    { color: #15803d; }
-.amarillo .rec-decision { color: #92400e; }
-.rojo .rec-decision     { color: #991b1b; }
-.rec-body .rec-text { font-size: .9rem; color: #374151; line-height: 1.6; }
+.verde .rec-decision    { color: var(--verde); }
+.amarillo .rec-decision { color: var(--amarillo); }
+.rojo .rec-decision     { color: var(--rojo); }
+.rec-body .rec-text { font-size: .9rem; color: var(--text); line-height: 1.6; }
 
 /* ── Risk factors ── */
 .risk-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr));
              gap: 1rem; margin-bottom: 1.4rem; }
-.risk-card { background: white; border-radius: 12px; padding: 1rem 1.2rem;
-             box-shadow: 0 1px 4px rgba(0,0,0,.07); border-left: 4px solid #ef4444; }
+.risk-card { background: var(--surface); border-radius: 12px; padding: 1rem 1.2rem;
+             border: 1px solid var(--border); border-left: 4px solid var(--rojo); }
 .risk-card .r-rank  { font-size: .65rem; font-weight: 800; text-transform: uppercase;
-                       color: #ef4444; letter-spacing: .5px; }
-.risk-card .r-name  { font-size: .92rem; font-weight: 700; color: #0c2340; margin: .2rem 0; }
-.risk-card .r-value { font-size: .8rem; color: #64748b; }
-.risk-card .r-impact{ font-size: .78rem; font-weight: 700; color: #dc2626; margin-top: .3rem; }
+                       color: var(--rojo); letter-spacing: .5px; }
+.risk-card .r-name  { font-size: .92rem; font-weight: 700; color: var(--text); margin: .2rem 0; }
+.risk-card .r-value { font-size: .8rem; color: var(--text-muted); }
+.risk-card .r-impact{ font-size: .78rem; font-weight: 700; color: var(--rojo); margin-top: .3rem; }
 
 /* ── Nueva Deuda section ── */
 .nueva-deuda-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin-bottom: 1.4rem; }
 @media (max-width: 820px) { .nueva-deuda-grid { grid-template-columns: 1fr; } }
 
-.nd-result { background: white; border-radius: 14px; padding: 1.2rem 1.4rem;
-             box-shadow: 0 1px 6px rgba(0,0,0,.07); }
+.nd-result { background: var(--surface); border-radius: 14px; padding: 1.2rem 1.4rem;
+             border: 1px solid var(--border); }
 .nd-row { display: flex; justify-content: space-between; align-items: center;
-          padding: .5rem 0; border-bottom: 1px solid #f1f5f9; }
+          padding: .5rem 0; border-bottom: 1px solid var(--border); }
 .nd-row:last-child { border-bottom: none; }
-.nd-lbl { font-size: .8rem; color: #64748b; }
-.nd-val { font-size: .9rem; font-weight: 700; color: #0c2340; }
+.nd-lbl { font-size: .8rem; color: var(--text-muted); }
+.nd-val { font-size: .9rem; font-weight: 700; color: var(--text); }
 .nd-status { padding: .2rem .7rem; border-radius: 20px; font-size: .78rem; font-weight: 700; }
-.nd-ok   { background: #dcfce7; color: #15803d; }
-.nd-warn { background: #fef3c7; color: #92400e; }
-.nd-bad  { background: #fee2e2; color: #991b1b; }
+.nd-ok   { background: rgba(76,175,125,.15); color: var(--verde); }
+.nd-warn { background: rgba(201,168,76,.15); color: var(--amarillo); }
+.nd-bad  { background: rgba(224,82,82,.15); color: var(--rojo); }
 
 /* ── Sector comparables ── */
 .sect-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
-.sect-table th { background: #f8fafc; font-size: .68rem; font-weight: 700;
-                 text-transform: uppercase; letter-spacing: .5px; color: #64748b;
+.sect-table th { background: var(--surface2); font-size: .68rem; font-weight: 700;
+                 text-transform: uppercase; letter-spacing: .5px; color: var(--accent);
                  padding: .6rem .8rem; text-align: left; }
-.sect-table td { padding: .55rem .8rem; border-bottom: 1px solid #f1f5f9; }
+.sect-table td { padding: .55rem .8rem; border-bottom: 1px solid var(--border); color: var(--text); }
 .sect-table tr:last-child td { border-bottom: none; }
-.sect-table tr.company-row td { background: #eff6ff; font-weight: 700; color: #1d4ed8; }
-.pos-p25  { color: #15803d; font-weight: 700; }
-.pos-med  { color: #92400e; font-weight: 700; }
-.pos-p75  { color: #991b1b; font-weight: 700; }
-.pos-good { color: #15803d; }
-.pos-mid  { color: #92400e; }
-.pos-bad  { color: #991b1b; }
+.sect-table tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+.sect-table tr.company-row td { background: rgba(201,168,76,.07); font-weight: 700; color: var(--accent); }
+.pos-p25  { color: var(--verde); font-weight: 700; }
+.pos-med  { color: var(--amarillo); font-weight: 700; }
+.pos-p75  { color: var(--rojo); font-weight: 700; }
+.pos-good { color: var(--verde); }
+.pos-mid  { color: var(--amarillo); }
+.pos-bad  { color: var(--rojo); }
 
 /* ── Covenants ── */
 .cov-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
             gap: .9rem; margin-bottom: 1.2rem; }
-.cov-card { background: white; border-radius: 12px; padding: 1rem 1.2rem;
-            box-shadow: 0 1px 4px rgba(0,0,0,.07); border-left: 4px solid #1d4ed8; }
+.cov-card { background: var(--surface); border-radius: 12px; padding: 1rem 1.2rem;
+            border: 1px solid var(--border); border-left: 4px solid var(--accent); }
 .cov-name  { font-size: .68rem; font-weight: 700; text-transform: uppercase;
-             letter-spacing: .5px; color: #64748b; margin-bottom: .4rem; }
-.cov-value { font-size: 1.25rem; font-weight: 800; color: #0c2340; }
-.cov-desc  { font-size: .75rem; color: #94a3b8; margin-top: .3rem; }
+             letter-spacing: .5px; color: var(--text-muted); margin-bottom: .4rem; }
+.cov-value { font-size: 1.25rem; font-weight: 800; color: var(--text); }
+.cov-desc  { font-size: .75rem; color: var(--text-muted); margin-top: .3rem; }
 
 .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr));
                 gap: .9rem; margin-bottom: 1rem; }
-.pricing-card { background: #f8fafc; border-radius: 10px; padding: .8rem 1rem;
-                border: 1px solid #e2e8f0; text-align: center; }
-.pricing-card.active-price { background: #eff6ff; border-color: #3b82f6; }
+.pricing-card { background: var(--surface2); border-radius: 10px; padding: .8rem 1rem;
+                border: 1px solid var(--border); text-align: center; }
+.pricing-card.active-price { background: rgba(201,168,76,.08); border-color: var(--accent); }
 .pc-tranche { font-size: .68rem; font-weight: 700; text-transform: uppercase;
-              letter-spacing: .5px; color: #64748b; margin-bottom: .3rem; }
-.pc-spread  { font-size: 1.2rem; font-weight: 800; color: #1d4ed8; }
-.pc-note    { font-size: .72rem; color: #94a3b8; margin-top: .2rem; }
+              letter-spacing: .5px; color: var(--text-muted); margin-bottom: .3rem; }
+.pc-spread  { font-size: 1.2rem; font-weight: 800; color: var(--accent); }
+.pc-note    { font-size: .72rem; color: var(--text-muted); margin-top: .2rem; }
 
 /* ── Detail table ── */
 .det-table { width: 100%; border-collapse: collapse; font-size: .83rem; }
-.det-table th { background: #f8fafc; font-size: .68rem; font-weight: 700;
-                text-transform: uppercase; letter-spacing: .5px; color: #64748b;
+.det-table th { background: var(--surface2); font-size: .68rem; font-weight: 700;
+                text-transform: uppercase; letter-spacing: .5px; color: var(--accent);
                 padding: .65rem .9rem; text-align: left; }
-.det-table td { padding: .6rem .9rem; border-bottom: 1px solid #f1f5f9; }
+.det-table td { padding: .6rem .9rem; border-bottom: 1px solid var(--border); color: var(--text); }
 .det-table tr:last-child td { border-bottom: none; }
-.badge-v { background: #dcfce7; color: #15803d; padding: .15rem .5rem;
+.det-table tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+.badge-v { background: rgba(76,175,125,.15); color: var(--verde); padding: .15rem .5rem;
            border-radius: 20px; font-size: .72rem; font-weight: 700; }
-.badge-a { background: #fef3c7; color: #92400e; padding: .15rem .5rem;
+.badge-a { background: rgba(201,168,76,.15); color: var(--amarillo); padding: .15rem .5rem;
            border-radius: 20px; font-size: .72rem; font-weight: 700; }
-.badge-r { background: #fee2e2; color: #991b1b; padding: .15rem .5rem;
+.badge-r { background: rgba(224,82,82,.15); color: var(--rojo); padding: .15rem .5rem;
            border-radius: 20px; font-size: .72rem; font-weight: 700; }
-.badge-n { background: #ffedd5; color: #9a3412; padding: .15rem .5rem;
+.badge-n { background: rgba(224,123,57,.15); color: var(--naranja); padding: .15rem .5rem;
            border-radius: 20px; font-size: .72rem; font-weight: 700; }
-.badge-g { background: #fbbf24; color: #78350f; padding: .15rem .5rem;
+.badge-g { background: rgba(201,168,76,.2); color: var(--accent); padding: .15rem .5rem;
            border-radius: 20px; font-size: .72rem; font-weight: 700; }
 
 /* ── Colateral inventory table ── */
 .col-table { width:100%; border-collapse:collapse; font-size:.82rem; }
-.col-table th { background:#f8fafc; font-size:.67rem; font-weight:700; text-transform:uppercase;
-                letter-spacing:.5px; color:#64748b; padding:.55rem .7rem; text-align:left; white-space:nowrap; }
-.col-table td { padding:.42rem .7rem; border-bottom:1px solid #f1f5f9; vertical-align:middle; }
-.col-table tfoot td { padding:.6rem .7rem; font-weight:800; }
-.col-inp { background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px;
-           padding:.28rem .4rem; font-size:.8rem; font-family:inherit; }
-.col-inp:focus { border-color:#3b82f6; outline:none; }
+.col-table th { background:var(--surface2); font-size:.67rem; font-weight:700; text-transform:uppercase;
+                letter-spacing:.5px; color:var(--accent); padding:.55rem .7rem; text-align:left; white-space:nowrap; }
+.col-table td { padding:.42rem .7rem; border-bottom:1px solid var(--border); vertical-align:middle; color:var(--text); }
+.col-table tfoot td { padding:.6rem .7rem; font-weight:800; color:var(--text); }
+.col-inp { background:var(--surface2); border:1px solid var(--border); border-radius:6px;
+           padding:.28rem .4rem; font-size:.8rem; font-family:inherit; color:var(--text); }
+.col-inp:focus { border-color:var(--accent); outline:none; }
 .col-inp-desc { width:140px; }
 .col-inp-num  { width:70px; text-align:right; }
 .col-sel { width:155px; }
-.col-haircut { text-align:center; font-weight:700; color:#f97316; }
-.col-neto    { text-align:right; font-weight:800; color:#0c2340; }
-.col-del-btn { background:none; border:none; color:#ef4444; font-size:1.1rem;
+.col-haircut { text-align:center; font-weight:700; color:var(--naranja); }
+.col-neto    { text-align:right; font-weight:800; color:var(--text); }
+.col-del-btn { background:none; border:none; color:var(--rojo); font-size:1.1rem;
                cursor:pointer; padding:.1rem .3rem; line-height:1; }
-.col-del-btn:hover { color:#991b1b; }
+.col-del-btn:hover { color:#ff7070; }
 
 /* ── Recovery metric cards ── */
 .rec-kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
                 gap:.9rem; margin-bottom:1.2rem; }
-.rec-kpi { background:white; border-radius:12px; padding:.9rem 1rem;
-           box-shadow:0 1px 4px rgba(0,0,0,.07); border-top:3px solid #e2e8f0; }
-.rec-kpi.rv  { border-top-color:#22c55e; }
-.rec-kpi.ra  { border-top-color:#f59e0b; }
-.rec-kpi.rn  { border-top-color:#f97316; }
-.rec-kpi.rr  { border-top-color:#ef4444; }
-.rec-kpi.rb  { border-top-color:#1d4ed8; }
-.rk-label { font-size:.63rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#64748b; margin-bottom:.3rem; }
-.rk-value { font-size:1.3rem; font-weight:800; color:#0c2340; line-height:1; }
-.rk-sub   { font-size:.68rem; color:#94a3b8; margin-top:.25rem; }
+.rec-kpi { background:var(--surface); border-radius:12px; padding:.9rem 1rem;
+           border:1px solid var(--border); border-top:3px solid var(--border); }
+.rec-kpi.rv  { border-top-color:var(--verde); }
+.rec-kpi.ra  { border-top-color:var(--amarillo); }
+.rec-kpi.rn  { border-top-color:var(--naranja); }
+.rec-kpi.rr  { border-top-color:var(--rojo); }
+.rec-kpi.rb  { border-top-color:var(--accent); }
+.rk-label { font-size:.63rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); margin-bottom:.3rem; }
+.rk-value { font-size:1.3rem; font-weight:800; color:var(--text); line-height:1; }
+.rk-sub   { font-size:.68rem; color:var(--text-muted); margin-top:.25rem; }
 
 /* ── Priority table ── */
-.pri-covered { background:#f0fdf4; }
-.pri-partial { background:#fefce8; }
+.pri-covered { background:rgba(76,175,125,.05); }
+.pri-partial { background:rgba(201,168,76,.05); }
 
 /* ── Animations ── */
 @keyframes fadeIn { from { opacity:0; transform: translateY(-8px); } to { opacity:1; transform:none; } }
 
 /* ── PDF / Print button ── */
-.pdf-btn { width: 100%; margin-top: .4rem; background: #0f172a;
-           color: #7eb8d8; border: 1px solid #1e4976; border-radius: 6px;
+.pdf-btn { width: 100%; margin-top: .4rem; background: transparent;
+           color: var(--text-muted); border: 1px solid var(--border); border-radius: 6px;
            padding: .45rem; font-size: .82rem; font-weight: 600; cursor: pointer;
            transition: all .15s; display: flex; align-items: center;
            justify-content: center; gap: .4rem; }
-.pdf-btn:hover { background: #1e293b; color: #c8dff0; }
+.pdf-btn:hover { border-color: var(--accent); color: var(--accent); }
 
 /* ── TokenOriginate branding ── */
 .sb-branding { display: flex; align-items: center; gap: .75rem; margin-bottom: 1.1rem; }
 .sb-logo-name { color: white; font-size: 1.05rem; font-weight: 800; letter-spacing: -.3px; line-height: 1.1; }
-.sb-logo-tag  { color: #2dd4bf; font-size: .62rem; font-weight: 700; text-transform: uppercase;
-                letter-spacing: .9px; margin-top: .1rem; }
+.sb-logo-name span { color: var(--accent); font-weight: 300; letter-spacing: .02em; }
+.sb-logo-tag  { color: var(--accent); font-size: .62rem; font-weight: 700; text-transform: uppercase;
+                letter-spacing: .9px; margin-top: .1rem; opacity: .75; }
+.sb-logo-platform { color: var(--text-muted); font-size: .58rem; font-weight: 600;
+                    text-transform: uppercase; letter-spacing: .06em; margin-top: .05rem; }
 
 /* ── PDF Cover page ── */
 #pdf-cover {
   display: none;
   position: fixed; inset: 0; z-index: 9999;
-  background: linear-gradient(145deg, #060e1d 0%, #0c1f3f 45%, #0e2d54 100%);
+  background: var(--bg);
   flex-direction: column; align-items: center; justify-content: center;
-  font-family: 'Segoe UI', Arial, sans-serif; color: white;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif; color: var(--text);
 }
 .cover-grid-bg {
-  position: absolute; inset: 0; opacity: .04;
-  background-image: linear-gradient(#fff 1px, transparent 1px),
-                    linear-gradient(90deg, #fff 1px, transparent 1px);
+  position: absolute; inset: 0; opacity: .025;
+  background-image: linear-gradient(var(--border) 1px, transparent 1px),
+                    linear-gradient(90deg, var(--border) 1px, transparent 1px);
   background-size: 40px 40px;
 }
 .cover-accent-bar {
-  position: absolute; top: 0; left: 0; right: 0; height: 4px;
-  background: linear-gradient(90deg, #2dd4bf, #3b82f6, #f59e0b);
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent));
 }
 .cover-accent-bottom {
-  position: absolute; bottom: 0; left: 0; right: 0; height: 4px;
-  background: linear-gradient(90deg, #f59e0b, #3b82f6, #2dd4bf);
+  position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent));
 }
 .cover-logo-wrap { display: flex; align-items: center; gap: 1.2rem; margin-bottom: 2.5rem; }
 .cover-company   { font-size: 2.8rem; font-weight: 900; letter-spacing: -1px; color: white; }
-.cover-tagline   { font-size: .9rem; font-weight: 600; color: #2dd4bf; text-transform: uppercase;
-                   letter-spacing: 2px; margin-top: .2rem; }
-.cover-divider   { width: 80px; height: 3px;
-                   background: linear-gradient(90deg, #3b82f6, #2dd4bf);
+.cover-company span { color: var(--accent); font-weight: 300; }
+.cover-tagline   { font-size: .9rem; font-weight: 600; color: var(--accent); text-transform: uppercase;
+                   letter-spacing: 2px; margin-top: .2rem; opacity: .8; }
+.cover-platform  { font-size: .7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;
+                   letter-spacing: .1em; margin-top: .15rem; }
+.cover-divider   { width: 80px; height: 2px;
+                   background: linear-gradient(90deg, transparent, var(--accent), transparent);
                    border-radius: 2px; margin: 2rem 0; }
-.cover-report    { font-size: 1.55rem; font-weight: 800; color: white;
+.cover-report    { font-size: 1.55rem; font-weight: 800; color: var(--text);
                    text-align: center; letter-spacing: -.5px; }
-.cover-sub       { font-size: .95rem; color: #94a3b8; margin-top: .6rem; text-align: center; }
+.cover-sub       { font-size: .95rem; color: var(--text-muted); margin-top: .6rem; text-align: center; }
 .cover-meta      { display: flex; gap: 2.5rem; margin-top: 3rem; }
 .cover-meta-item { text-align: center; }
 .cover-meta-item .cm-label { font-size: .65rem; font-weight: 700; text-transform: uppercase;
-                              letter-spacing: 1px; color: #64748b; margin-bottom: .3rem; }
-.cover-meta-item .cm-value { font-size: .95rem; font-weight: 700; color: #e2e8f0; }
+                              letter-spacing: 1px; color: var(--text-muted); margin-bottom: .3rem; }
+.cover-meta-item .cm-value { font-size: .95rem; font-weight: 700; color: var(--text); }
 .cover-footer-txt { position: absolute; bottom: 1.5rem; font-size: .72rem;
-                    color: #334155; text-align: center; letter-spacing: .5px; }
+                    color: var(--text-muted); text-align: center; letter-spacing: .5px; }
+
+/* ── PDF Summary / Legal pages ── */
+#pdf-summary, #pdf-legal {
+  display: none;
+  position: fixed; inset: 0; z-index: 9998;
+  background: var(--bg);
+  flex-direction: column;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif; color: var(--text);
+  padding: 3rem 5rem;
+}
+.pdf-page-header { border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 2rem;
+                   display: flex; justify-content: space-between; align-items: center; }
+.pdf-page-header .ph-logo { font-size: 1rem; font-weight: 800; color: white; }
+.pdf-page-header .ph-logo span { color: var(--accent); font-weight: 300; }
+.pdf-page-header .ph-sub { font-size: .7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .08em; }
+.pdf-page-title { font-size: 1.6rem; font-weight: 800; color: var(--text); margin-bottom: 1.5rem; }
+.pdf-page-text  { font-size: .9rem; color: var(--text); line-height: 1.8; margin-bottom: 1.2rem; }
+.pdf-legal-title { font-size: .65rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em;
+                   color: var(--accent); margin-bottom: .5rem; margin-top: 1.2rem; }
+.pdf-legal-text  { font-size: .75rem; color: var(--text-muted); line-height: 1.7; }
+.pdf-legal-footer { margin-top: auto; padding-top: 2rem; border-top: 1px solid var(--border);
+                    font-size: .7rem; color: var(--text-muted); }
 
 /* ── Score Badge SVG ── */
 .badge-wrap { display:flex; flex-direction:column; align-items:center; justify-content:center; height:220px; }
 .badge-arc  { fill:none; stroke-width:10; stroke-linecap:round;
               transition: stroke-dashoffset .9s ease, stroke .4s; }
 /* ── Report header ── */
-.report-header { background:white; border-radius:12px; padding:.85rem 1.4rem;
-                 margin-bottom:1.1rem; box-shadow:0 1px 6px rgba(0,0,0,.06);
+.report-header { background:var(--surface); border-radius:12px; padding:.85rem 1.4rem;
+                 margin-bottom:1.1rem; border:1px solid var(--border);
                  display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; }
 .rh-left  { display:flex; align-items:center; gap:.8rem; flex:1; min-width:200px; }
 .rh-right { display:flex; gap:1.8rem; }
 .rh-meta  { text-align:right; }
-.rh-meta .rh-lbl { font-size:.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#64748b; }
-.rh-meta .rh-val { font-size:.88rem; font-weight:800; color:#1B3A6B; }
-.empresa-input { border:1px solid #e2e8f0; border-radius:6px; padding:.32rem .65rem;
-                 font-size:.88rem; font-family:inherit; font-weight:600; color:#0c2340;
-                 flex:1; max-width:280px; outline:none; background:white; }
-.empresa-input:focus { border-color:#3b82f6; }
+.rh-meta .rh-lbl { font-size:.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); }
+.rh-meta .rh-val { font-size:.88rem; font-weight:800; color:var(--accent); }
+.empresa-input { border:1px solid var(--border); border-radius:6px; padding:.32rem .65rem;
+                 font-size:.88rem; font-family:inherit; font-weight:600; color:var(--text);
+                 flex:1; max-width:280px; outline:none; background:var(--surface2); }
+.empresa-input:focus { border-color:var(--accent); }
 /* ── Credit history section ── */
 .hist-row { display:flex; justify-content:space-between; align-items:center;
-            padding:.45rem 0; border-bottom:1px solid #f1f5f9; font-size:.85rem; }
+            padding:.45rem 0; border-bottom:1px solid var(--border); font-size:.85rem; }
 .hist-row:last-child { border-bottom:none; }
-.hist-lbl { color:#64748b; }
-.hist-val { font-weight:700; }
-.hist-penalty { color:#dc2626; }
-.hist-bonus   { color:#15803d; }
-.hist-neutral { color:#64748b; }
+.hist-lbl { color:var(--text-muted); }
+.hist-val { font-weight:700; color:var(--text); }
+.hist-penalty { color:var(--rojo); }
+.hist-bonus   { color:var(--verde); }
+.hist-neutral { color:var(--text-muted); }
 /* ── PDF upload button ── */
-.pdf-upload-btn { width:100%; margin-top:.4rem; background:#0d3b6e;
-                  color:#7eb8d8; border:1px solid #1e4976; border-radius:6px;
+.pdf-upload-btn { width:100%; margin-top:.4rem; background:transparent;
+                  color:var(--text-muted); border:1px solid var(--border); border-radius:6px;
                   padding:.45rem; font-size:.82rem; font-weight:600; cursor:pointer;
                   transition:all .15s; display:flex; align-items:center;
                   justify-content:center; gap:.4rem; }
-.pdf-upload-btn:hover { background:#1e4976; color:#c8dff0; }
+.pdf-upload-btn:hover { border-color:var(--accent); color:var(--accent); }
 /* ── Working Capital tiles ── */
 .wc-summary-row { display:flex; justify-content:space-between; align-items:center;
-                  padding:.5rem 0; border-bottom:1px solid #f1f5f9; }
+                  padding:.5rem 0; border-bottom:1px solid var(--border); }
 .wc-summary-row:last-child { border-bottom:none; }
 
 /* ── Print ── */
 @media print {
-  #pdf-cover { display: flex !important; position: relative;
+  #pdf-cover, #pdf-summary, #pdf-legal { display: flex !important; position: relative;
                width: 100vw; height: 100vh; page-break-after: always; }
   #sidebar { display: none; }
-  body { overflow: auto; display: block; background: white; }
+  body { overflow: auto; display: block; background: var(--bg); }
   #main { overflow: visible; padding: 1rem; }
   .tabs { display: none; }
   .section { display: block !important; page-break-inside: avoid; margin-bottom: 2rem; }
   .section::before { content: attr(data-title); font-size: 1rem; font-weight: 800;
-                     color: #0c2340; display: block; margin-bottom: .8rem;
-                     border-bottom: 2px solid #0c2340; padding-bottom: .3rem; }
+                     color: var(--text); display: block; margin-bottom: .8rem;
+                     border-bottom: 2px solid var(--border); padding-bottom: .3rem; }
   .print-header { display: flex !important; }
 }
 </style>
@@ -399,83 +448,107 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: #F7F8FA;
   <div class="cover-accent-bar"></div>
   <div class="cover-accent-bottom"></div>
   <div class="cover-logo-wrap">
-    <!-- TokenOriginate Logo SVG -->
-    <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="cvGrad" x1="0" y1="0" x2="72" y2="72" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="#1e40af"/>
-          <stop offset="50%" stop-color="#2563eb"/>
-          <stop offset="100%" stop-color="#0ea5e9"/>
-        </linearGradient>
-        <linearGradient id="cvGoldGrad" x1="0" y1="0" x2="72" y2="0" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="#f59e0b"/>
-          <stop offset="100%" stop-color="#fbbf24"/>
-        </linearGradient>
-      </defs>
-      <rect width="72" height="72" rx="18" fill="url(#cvGrad)"/>
-      <!-- Outer diamond / token shape -->
-      <polygon points="36,10 62,36 36,62 10,36" fill="none" stroke="white" stroke-width="2" opacity="0.35"/>
-      <!-- Inner diamond -->
-      <polygon points="36,20 52,36 36,52 20,36" fill="none" stroke="white" stroke-width="1.5" opacity="0.18"/>
-      <!-- Originate arrow -->
-      <line x1="22" y1="36" x2="44" y2="36" stroke="url(#cvGoldGrad)" stroke-width="3.5" stroke-linecap="round"/>
-      <polyline points="38,28 46,36 38,44" fill="none" stroke="url(#cvGoldGrad)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-      <!-- Corner dots -->
-      <circle cx="36" cy="10" r="3" fill="#2dd4bf"/>
-      <circle cx="62" cy="36" r="3" fill="#2dd4bf"/>
-      <circle cx="36" cy="62" r="3" fill="#2dd4bf"/>
-      <circle cx="10" cy="36" r="3" fill="#2dd4bf"/>
+    <!-- TokenOriginate Hexagon Logo SVG -->
+    <svg width="72" height="72" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="28,3 52,15.5 52,40.5 28,53 4,40.5 4,15.5" fill="#0a0a0f" stroke="#c9a84c" stroke-width="2"/>
+      <line x1="15" y1="28" x2="37" y2="28" stroke="#c9a84c" stroke-width="2.5" stroke-linecap="round"/>
+      <polyline points="31,21 39,28 31,35" fill="none" stroke="#c9a84c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
     <div>
-      <div class="cover-company">TokenOriginate</div>
-      <div class="cover-tagline">Credit Risk Platform</div>
+      <div class="cover-company">TOKEN<span>ORIGINATE</span></div>
+      <div class="cover-tagline">Credit Risk</div>
+      <div class="cover-platform">Platform</div>
     </div>
   </div>
   <div class="cover-divider"></div>
   <div class="cover-report">Credit Risk Scoring Report</div>
-  <div class="cover-sub">PYMEs Industriales — Modelo v2.0 | Análisis de Riesgo Crediticio</div>
+  <div class="cover-sub" id="cover-empresa-sub">PYMEs Industriales — Modelo v2.0 | Análisis de Riesgo Crediticio</div>
   <div class="cover-meta">
     <div class="cover-meta-item">
       <div class="cm-label">Fecha de análisis</div>
       <div class="cm-value" id="cover-date">—</div>
     </div>
     <div class="cover-meta-item">
-      <div class="cm-label">Plataforma</div>
-      <div class="cm-value">TokenOriginate v2.0</div>
+      <div class="cm-label">Nº Informe</div>
+      <div class="cm-value" id="cover-report-num">TO-—</div>
     </div>
     <div class="cover-meta-item">
       <div class="cm-label">Clasificación</div>
       <div class="cm-value">Uso Interno</div>
     </div>
   </div>
-  <div class="cover-footer-txt">© TokenOriginate — Documento confidencial. Solo para uso interno y análisis orientativo. Prohibida su distribución sin autorización.</div>
+  <div class="cover-footer-txt">© TokenOriginate 2026 · info@tokenoriginate.com — Documento confidencial. Solo para uso interno y análisis orientativo.</div>
+</div>
+
+<!-- ═══════════════════════════ PDF SUMMARY PAGE ═══════════════════════════ -->
+<div id="pdf-summary">
+  <div class="pdf-page-header">
+    <div class="ph-logo">TOKEN<span>ORIGINATE</span></div>
+    <div class="ph-sub">Credit Risk Platform · Resumen Ejecutivo</div>
+  </div>
+  <div class="pdf-page-title">Resumen Ejecutivo</div>
+  <p class="pdf-page-text">
+    TokenOriginate es una plataforma de análisis de riesgo crediticio especializada en PYMEs industriales.
+    Mediante un modelo cuantitativo de 11 métricas ponderadas — que combina ratios de cobertura de deuda,
+    apalancamiento, liquidez y factores cualitativos — genera una puntuación de riesgo (0–100) y una
+    calificación equivalente a la escala S&amp;P. El análisis se complementa con comparables sectoriales,
+    generación automática de covenants y análisis de colateral.
+  </p>
+  <p class="pdf-page-text" id="pdf-summary-empresa">
+    El presente informe analiza la operación de crédito propuesta, evaluando la capacidad de servicio de la
+    deuda, el perfil de apalancamiento y los factores cualitativos del equipo directivo, base de clientes
+    y estabilidad sectorial. Los resultados se presentan con el score final, la recomendación de crédito
+    y los principales factores de riesgo identificados.
+  </p>
+</div>
+
+<!-- ═══════════════════════════ PDF LEGAL PAGE ═══════════════════════════ -->
+<div id="pdf-legal">
+  <div class="pdf-page-header">
+    <div class="ph-logo">TOKEN<span>ORIGINATE</span></div>
+    <div class="ph-sub">Credit Risk Platform · Aviso Legal</div>
+  </div>
+  <div class="pdf-page-title">Aviso Legal y Limitaciones</div>
+  <div class="pdf-legal-title">AVISO LEGAL Y LIMITACIONES</div>
+  <p class="pdf-legal-text">
+    Este informe ha sido elaborado por TokenOriginate con carácter exclusivamente orientativo e interno.
+    No constituye asesoramiento financiero, oferta de financiación ni compromiso de concesión de crédito.
+    La información contenida en este documento se basa en los datos proporcionados por el cliente o
+    introducidos manualmente, sin verificación independiente por parte de TokenOriginate.
+  </p>
+  <div class="pdf-legal-title">RESPONSABILIDAD</div>
+  <p class="pdf-legal-text">
+    TokenOriginate no asume responsabilidad alguna por decisiones de crédito adoptadas basándose
+    exclusivamente en este informe. El análisis debe ser completado con due diligence adicional,
+    verificación documental y el juicio profesional del analista de riesgo responsable.
+    Los modelos de scoring utilizados son herramientas de apoyo a la decisión y no sustituyen
+    el criterio experto ni la política de riesgos de la entidad financiadora.
+  </p>
+  <div class="pdf-legal-title">CONFIDENCIALIDAD</div>
+  <p class="pdf-legal-text">
+    Este documento es confidencial y está destinado exclusivamente al uso interno de la entidad
+    financiadora. Queda prohibida su reproducción, distribución o divulgación a terceros sin
+    autorización expresa y por escrito de TokenOriginate.
+  </p>
+  <div class="pdf-legal-footer">
+    © TokenOriginate 2026 · info@tokenoriginate.com<br>
+    Documento generado automáticamente. Uso interno y análisis orientativo únicamente.
+  </div>
 </div>
 
 <!-- ═══════════════════════════ SIDEBAR ═══════════════════════════ -->
 <div id="sidebar">
   <!-- TokenOriginate brand -->
   <div class="sb-branding">
-    <svg width="38" height="38" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="sbGrad" x1="0" y1="0" x2="72" y2="72" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="#1e40af"/><stop offset="100%" stop-color="#0ea5e9"/>
-        </linearGradient>
-        <linearGradient id="sbGold" x1="0" y1="0" x2="72" y2="0" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#fbbf24"/>
-        </linearGradient>
-      </defs>
-      <rect width="72" height="72" rx="18" fill="url(#sbGrad)"/>
-      <polygon points="36,10 62,36 36,62 10,36" fill="none" stroke="white" stroke-width="2" opacity="0.35"/>
-      <line x1="22" y1="36" x2="44" y2="36" stroke="url(#sbGold)" stroke-width="3.5" stroke-linecap="round"/>
-      <polyline points="38,28 46,36 38,44" fill="none" stroke="url(#sbGold)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-      <circle cx="36" cy="10" r="3" fill="#2dd4bf"/>
-      <circle cx="62" cy="36" r="3" fill="#2dd4bf"/>
-      <circle cx="36" cy="62" r="3" fill="#2dd4bf"/>
-      <circle cx="10" cy="36" r="3" fill="#2dd4bf"/>
+    <svg width="38" height="38" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="28,3 52,15.5 52,40.5 28,53 4,40.5 4,15.5" fill="#111118" stroke="#c9a84c" stroke-width="2"/>
+      <line x1="15" y1="28" x2="37" y2="28" stroke="#c9a84c" stroke-width="2.5" stroke-linecap="round"/>
+      <polyline points="31,21 39,28 31,35" fill="none" stroke="#c9a84c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
     <div>
-      <div class="sb-logo-name">TokenOriginate</div>
-      <div class="sb-logo-tag">Credit Risk Platform</div>
+      <div class="sb-logo-name">TOKEN<span>ORIGINATE</span></div>
+      <div class="sb-logo-tag">Credit Risk</div>
+      <div class="sb-logo-platform">Platform</div>
     </div>
   </div>
 
@@ -661,29 +734,23 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: #F7F8FA;
 <div id="main">
   <!-- Print-only header strip (appears on every page after cover) -->
   <div class="print-header" style="display:none; justify-content:space-between; align-items:center;
-       border-bottom:2px solid #0c1f3f; padding-bottom:.6rem; margin-bottom:1.2rem;">
+       border-bottom:1px solid var(--border); padding-bottom:.6rem; margin-bottom:1.2rem;">
     <div style="display:flex;align-items:center;gap:.6rem;">
-      <svg width="24" height="24" viewBox="0 0 72 72" fill="none">
-        <defs>
-          <linearGradient id="phGrad" x1="0" y1="0" x2="72" y2="72" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="#1e40af"/><stop offset="100%" stop-color="#0ea5e9"/>
-          </linearGradient>
-        </defs>
-        <rect width="72" height="72" rx="18" fill="url(#phGrad)"/>
-        <polygon points="36,10 62,36 36,62 10,36" fill="none" stroke="white" stroke-width="2" opacity="0.4"/>
-        <line x1="22" y1="36" x2="44" y2="36" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round"/>
-        <polyline points="38,28 46,36 38,44" fill="none" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <svg width="22" height="22" viewBox="0 0 56 56" fill="none">
+        <polygon points="28,3 52,15.5 52,40.5 28,53 4,40.5 4,15.5" fill="#111118" stroke="#c9a84c" stroke-width="2"/>
+        <line x1="15" y1="28" x2="37" y2="28" stroke="#c9a84c" stroke-width="2" stroke-linecap="round"/>
+        <polyline points="31,21 39,28 31,35" fill="none" stroke="#c9a84c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      <span style="font-weight:800;font-size:.9rem;color:#0c1f3f;">TokenOriginate</span>
-      <span style="font-size:.75rem;color:#64748b;">Credit Risk Platform</span>
+      <span style="font-weight:800;font-size:.9rem;color:white;">TOKEN<span style="color:#c9a84c;font-weight:300;">ORIGINATE</span></span>
+      <span style="font-size:.7rem;color:#55556a;text-transform:uppercase;letter-spacing:.06em;">Credit Risk Platform</span>
     </div>
-    <span style="font-size:.72rem;color:#94a3b8;">Credit Risk Scoring Report — Uso interno</span>
+    <span style="font-size:.72rem;color:#55556a;">Credit Risk Scoring Report — Uso interno</span>
   </div>
 
   <!-- Report header -->
   <div class="report-header">
     <div class="rh-left">
-      <span style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:#64748b;letter-spacing:.5px;white-space:nowrap;">Empresa</span>
+      <span style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:#55556a;letter-spacing:.5px;white-space:nowrap;">Empresa</span>
       <input id="empresa-nombre" class="empresa-input" type="text" placeholder="Nombre de la empresa...">
     </div>
     <div class="rh-right">
@@ -693,7 +760,7 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: #F7F8FA;
       </div>
       <div class="rh-meta">
         <div class="rh-lbl">Fecha</div>
-        <div class="rh-val" style="color:#374151;" id="report-date">—</div>
+        <div class="rh-val" style="color:#f0f0f5;" id="report-date">—</div>
       </div>
     </div>
   </div>
@@ -765,16 +832,16 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: #F7F8FA;
         <div class="card-title">Score Global</div>
         <div class="badge-wrap">
           <svg width="170" height="170" viewBox="0 0 160 160">
-            <circle cx="80" cy="80" r="72" fill="none" stroke="#f1f5f9" stroke-width="10"/>
+            <circle cx="80" cy="80" r="72" fill="none" stroke="#1f1f2e" stroke-width="10"/>
             <circle id="badge-arc" class="badge-arc" cx="80" cy="80" r="72"
-                    stroke="#e2e8f0" stroke-dasharray="452.4" stroke-dashoffset="452.4"
+                    stroke="#1f1f2e" stroke-dasharray="452.4" stroke-dashoffset="452.4"
                     transform="rotate(-90 80 80)"/>
             <text id="badge-score" x="80" y="68" text-anchor="middle"
-                  font-family="Inter,sans-serif" font-size="34" font-weight="900" fill="#0c2340">—</text>
+                  font-family="Inter,sans-serif" font-size="34" font-weight="900" fill="#f0f0f5">—</text>
             <text id="badge-rating" x="80" y="94" text-anchor="middle"
-                  font-family="Inter,sans-serif" font-size="17" font-weight="700" fill="#64748b">—</text>
+                  font-family="Inter,sans-serif" font-size="17" font-weight="700" fill="#55556a">—</text>
             <text id="badge-rating-desc" x="80" y="113" text-anchor="middle"
-                  font-family="Inter,sans-serif" font-size="10" fill="#94a3b8">Score Global</text>
+                  font-family="Inter,sans-serif" font-size="10" fill="#55556a">Score Global</text>
           </svg>
         </div>
       </div>
@@ -832,13 +899,13 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: #F7F8FA;
   <div id="tab-nueva_deuda" class="section" data-title="Análisis Nueva Deuda">
     <div class="card" style="margin-bottom:1.2rem;">
       <div class="card-title">Descripción de la Operación</div>
-      <div id="nd-finalidad-content"><p style="color:#94a3b8;font-size:.85rem;">Configure los datos en el panel lateral.</p></div>
+      <div id="nd-finalidad-content"><p style="color:#55556a;font-size:.85rem;">Configure los datos en el panel lateral.</p></div>
     </div>
     <div class="nueva-deuda-grid">
       <div class="nd-result card">
         <div class="card-title">Análisis de Servicio de Deuda Nueva</div>
         <div id="nd-content">
-          <p style="color:#94a3b8;font-size:.85rem;">Introduzca importe, plazo y tipo de interés en el panel lateral para ver el análisis.</p>
+          <p style="color:#55556a;font-size:.85rem;">Introduzca importe, plazo y tipo de interés en el panel lateral para ver el análisis.</p>
         </div>
       </div>
       <div class="nd-result card">
@@ -889,7 +956,7 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: #F7F8FA;
     <div class="card" style="margin-bottom:1.2rem;">
       <div class="card-title">Pricing por Tramo (Spread sobre Euribor)</div>
       <div class="pricing-grid" id="pricing-grid"></div>
-      <p id="pricing-note" style="font-size:.78rem;color:#94a3b8;margin-top:.8rem;"></p>
+      <p id="pricing-note" style="font-size:.78rem;color:#55556a;margin-top:.8rem;"></p>
     </div>
     <div class="card">
       <div class="card-title">Condiciones Adicionales Recomendadas</div>
@@ -904,7 +971,7 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: #F7F8FA;
     <div class="card" style="margin-bottom:1.2rem;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
         <div class="card-title" style="margin-bottom:0;">Sección 1 — Inventario de Colaterales</div>
-        <button onclick="addColRow()" style="background:#1d4ed8;color:white;border:none;border-radius:8px;padding:.4rem .9rem;font-size:.8rem;font-weight:700;cursor:pointer;">+ Añadir activo</button>
+        <button onclick="addColRow()" style="background:#c9a84c;color:#0a0a0f;border:none;border-radius:8px;padding:.4rem .9rem;font-size:.8rem;font-weight:700;cursor:pointer;">+ Añadir activo</button>
       </div>
       <div style="overflow-x:auto;">
         <table class="col-table">
@@ -918,14 +985,14 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: #F7F8FA;
             <th></th>
           </tr></thead>
           <tbody id="col-tbody">
-            <tr id="col-empty"><td colspan="7" style="text-align:center;color:#94a3b8;padding:1.8rem;font-size:.85rem;">Sin activos. Pulsa "+ Añadir activo" para comenzar.</td></tr>
+            <tr id="col-empty"><td colspan="7" style="text-align:center;color:#55556a;padding:1.8rem;font-size:.85rem;">Sin activos. Pulsa "+ Añadir activo" para comenzar.</td></tr>
           </tbody>
           <tfoot id="col-tfoot" style="display:none;">
-            <tr style="background:#f8fafc;border-top:2px solid #e2e8f0;">
-              <td colspan="2" style="color:#0c2340;">TOTAL</td>
-              <td style="text-align:right;font-size:1rem;color:#0c2340;" id="col-t-bruto">0.00</td>
+            <tr style="background:#18181f;border-top:2px solid #1f1f2e;">
+              <td colspan="2" style="color:#f0f0f5;">TOTAL</td>
+              <td style="text-align:right;font-size:1rem;color:#f0f0f5;" id="col-t-bruto">0.00</td>
               <td></td>
-              <td style="text-align:right;font-size:1rem;color:#15803d;" id="col-t-neto">0.00</td>
+              <td style="text-align:right;font-size:1rem;color:#4caf7d;" id="col-t-neto">0.00</td>
               <td colspan="2"></td>
             </tr>
           </tfoot>
@@ -960,7 +1027,7 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: #F7F8FA;
           <tbody id="col-priority"></tbody>
         </table>
       </div>
-      <p id="col-note" style="font-size:.75rem;color:#94a3b8;margin-top:.8rem;">
+      <p id="col-note" style="font-size:.75rem;color:#55556a;margin-top:.8rem;">
         Valores presentes descontados al 8% según tiempo medio de ejecución estimado por tipo de activo.
       </p>
     </div>
@@ -978,7 +1045,7 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: #F7F8FA;
           </tr></thead>
           <tbody id="det-tbody"></tbody>
           <tfoot>
-            <tr style="font-weight:800;background:#f8fafc;">
+            <tr style="font-weight:800;background:#18181f;">
               <td colspan="3">Score Total</td>
               <td>100%</td>
               <td id="det-total">—</td>
@@ -1019,7 +1086,7 @@ function updateBadge(score, gate) {
   if (!arc) return;
   const s = Math.max(0, Math.min(100, score));
   const offset = CIRC * (1 - s / 100);
-  const color = gate ? '#ef4444' : s >= 80 ? '#22c55e' : s >= 60 ? '#f59e0b' : s >= 40 ? '#f97316' : '#ef4444';
+  const color = gate ? '#e05252' : s >= 80 ? '#4caf7d' : s >= 60 ? '#c9a84c' : s >= 40 ? '#e07b39' : '#e05252';
   arc.style.strokeDashoffset = offset;
   arc.style.stroke = color;
   if (scoreEl)  scoreEl.textContent  = Math.round(s);
@@ -1132,11 +1199,11 @@ function renderWorkingCapital(d, wc) {
   const labels = ['PMC (cobro)', wc.pma !== null ? 'PMA (stock)' : null, 'PMP (pago)', 'Ciclo neto'].filter(Boolean);
   const vals   = [wc.pmc, wc.pma, -wc.pmp, wc.ciclo].filter(v => v !== null);
   const colors = [pmcCls, pmaCls, 'verde', cicloCls].filter((_, i) => [true, wc.pma !== null, true, true][i])
-    .map(c => c === 'verde' ? '#22c55e' : c === 'amarillo' ? '#f59e0b' : c === 'rojo' ? '#ef4444' : '#64748b');
+    .map(c => c === 'verde' ? '#4caf7d' : c === 'amarillo' ? '#c9a84c' : c === 'rojo' ? '#e05252' : '#55556a');
   Plotly.react('wc-cycle-chart', [{ type:'bar', x:labels, y:vals, marker:{ color:colors },
     text:vals.map(v => Math.round(v)+' d'), textposition:'outside' }], {
-    paper_bgcolor:'white', plot_bgcolor:'white', margin:{t:20,b:30,l:40,r:20},
-    yaxis:{ title:'Días', showgrid:true, gridcolor:'#f1f5f9' }, height:220
+    paper_bgcolor:'#111118', plot_bgcolor:'#111118', margin:{t:20,b:30,l:40,r:20},
+    yaxis:{ title:'Días', showgrid:true, gridcolor:'#1f1f2e' }, height:220
   }, { displayModeBar:false, responsive:true });
 
   // Summary
@@ -1175,8 +1242,8 @@ function renderCreditHistory(d, histPenalty) {
      </div>`).join('');
   const totalCls = histPenalty.penalty > 0 ? 'hist-bonus' : histPenalty.penalty < 0 ? 'hist-penalty' : 'hist-neutral';
   cnt.innerHTML = rows +
-    `<div class="hist-row" style="border-top:2px solid #e2e8f0;margin-top:.3rem;padding-top:.5rem;">
-       <span style="font-weight:700;color:#0c2340;">Ajuste total sobre score cuantitativo</span>
+    `<div class="hist-row" style="border-top:2px solid #1f1f2e;margin-top:.3rem;padding-top:.5rem;">
+       <span style="font-weight:700;color:#f0f0f5;">Ajuste total sobre score cuantitativo</span>
        <span class="hist-val ${totalCls}" style="font-size:1rem;">${histPenalty.penalty > 0 ? '+' : ''}${histPenalty.penalty} pts</span>
      </div>`;
 }
@@ -1232,13 +1299,13 @@ function renderDescripcionOperacion(d, r, nd) {
   };
   const f = d.finalidad || 'otro';
   el.innerHTML = `
-    <div class="nd-row"><span class="nd-lbl">Finalidad declarada</span><span class="nd-val" style="color:#1d4ed8;">${labels[f]||labels.otro}</span></div>
-    <div style="background:#f8fafc;border-radius:8px;padding:.85rem;margin:.7rem 0;font-size:.85rem;color:#374151;line-height:1.6;">${descs[f]||descs.otro}</div>
+    <div class="nd-row"><span class="nd-lbl">Finalidad declarada</span><span class="nd-val" style="color:#c9a84c;">${labels[f]||labels.otro}</span></div>
+    <div style="background:#18181f;border-radius:8px;padding:.85rem;margin:.7rem 0;font-size:.85rem;color:#f0f0f5;line-height:1.6;">${descs[f]||descs.otro}</div>
     ${d.importe > 0 ? `
     <div class="nd-row"><span class="nd-lbl">Importe solicitado</span><span class="nd-val">${d.importe.toFixed(2)} M€</span></div>
     <div class="nd-row"><span class="nd-lbl">Plazo</span><span class="nd-val">${d.plazo} años</span></div>
     <div class="nd-row"><span class="nd-lbl">Tipo de interés</span><span class="nd-val">${d.tipo_int}%</span></div>
-    ` : '<p style="color:#94a3b8;font-size:.83rem;margin-top:.5rem;">Introduzca importe y plazo en el panel para ver el análisis de viabilidad DSCR.</p>'}`;
+    ` : '<p style="color:#55556a;font-size:.83rem;margin-top:.5rem;">Introduzca importe y plazo en el panel para ver el análisis de viabilidad DSCR.</p>'}`;
 }
 
 const PESOS = {
@@ -1556,8 +1623,8 @@ function renderScoring(d, r, res, score, baseScore, gate, histPenalty) {
   const labels = Object.values(res).map(v => v.nombre);
   const contribs = Object.values(res).map(v => +v.contrib.toFixed(2));
   const colors   = Object.values(res).map(v =>
-    v.color === 'verde' ? '#22c55e' : v.color === 'amarillo' ? '#f59e0b' :
-    v.color === 'naranja' ? '#f97316' : '#ef4444');
+    v.color === 'verde' ? '#4caf7d' : v.color === 'amarillo' ? '#c9a84c' :
+    v.color === 'naranja' ? '#e07b39' : '#e05252');
   Plotly.react('bar-chart', [{
     type:'bar', orientation:'h',
     x: contribs, y: labels,
@@ -1567,8 +1634,8 @@ function renderScoring(d, r, res, score, baseScore, gate, histPenalty) {
     hovertemplate: '%{y}: %{x:.1f} pts<extra></extra>'
   }], {
     margin:{t:5,b:20,l:130,r:50},
-    paper_bgcolor:'white', plot_bgcolor:'white',
-    xaxis:{ range:[0, Math.max(...contribs)*1.35], showgrid:true, gridcolor:'#f1f5f9' },
+    paper_bgcolor:'#111118', plot_bgcolor:'#111118',
+    xaxis:{ range:[0, Math.max(...contribs)*1.35], showgrid:true, gridcolor:'#1f1f2e' },
     yaxis:{ automargin:true, tickfont:{size:11} },
     height:210
   }, { displayModeBar:false, responsive:true });
@@ -1642,12 +1709,12 @@ function renderScoring(d, r, res, score, baseScore, gate, histPenalty) {
   Plotly.react('radar-chart', [{
     type:'scatterpolar', mode:'lines+markers',
     r: [...scores, scores[0]], theta: [...names, names[0]],
-    fill:'toself', fillcolor:'rgba(29,78,216,0.12)',
-    line:{ color:'#1d4ed8', width:2 },
-    marker:{ color:'#1d4ed8', size:6 }
+    fill:'toself', fillcolor:'rgba(201,168,76,0.10)',
+    line:{ color:'#c9a84c', width:2 },
+    marker:{ color:'#c9a84c', size:6 }
   }], {
-    polar:{ radialaxis:{range:[0,100],tickfont:{size:9}}, bgcolor:'white' },
-    paper_bgcolor:'white', margin:{t:20,b:20,l:50,r:50}, height:300
+    polar:{ radialaxis:{range:[0,100],tickfont:{size:9}}, bgcolor:'#111118' },
+    paper_bgcolor:'#111118', margin:{t:20,b:20,l:50,r:50}, height:300
   }, { displayModeBar:false, responsive:true });
 
   // Top 3 risks
@@ -1701,7 +1768,7 @@ function renderNuevaDeuda(d, r, nd) {
   // ── Análisis de operación nueva — sólo si importe > 0 ──
   if (!nd) {
     ndC.innerHTML = `
-      <p style="color:#94a3b8;font-size:.85rem;margin-bottom:.8rem;">
+      <p style="color:#55556a;font-size:.85rem;margin-bottom:.8rem;">
         Introduce el importe, plazo y tipo de interés en el panel lateral para analizar la operación concreta.
       </p>
       <div class="nd-row"><span class="nd-lbl">Capacidad adicional estimada</span>
@@ -1743,7 +1810,7 @@ function renderNuevaDeuda(d, r, nd) {
         <span class="nd-val"><span class="nd-status ${ltvStatus}">${ltvTxt}</span></span>
       </div>`;
   } else {
-    ndLtv.innerHTML = '<p style="color:#94a3b8;font-size:.85rem;">Introduce importe y valor del colateral para ver el análisis LTV.</p>';
+    ndLtv.innerHTML = '<p style="color:#55556a;font-size:.85rem;">Introduce importe y valor del colateral para ver el análisis LTV.</p>';
   }
 }
 
@@ -1796,24 +1863,24 @@ function renderComparables(d, r) {
     {
       type:'bar', name:'Esta empresa',
       x: categories, y: companyVals,
-      marker:{ color:'#1d4ed8' },
+      marker:{ color:'#c9a84c' },
       text: companyVals.map((v,i) => metrics[i].fmt(v)),
       textposition:'outside'
     },
     {
       type:'bar', name:'Mediana sector',
       x: categories, y: medVals,
-      marker:{ color:'#94a3b8' },
+      marker:{ color:'#55556a' },
       text: medVals.map((v,i) => metrics[i].fmt(v)),
       textposition:'outside'
     }
   ], {
     barmode:'group',
-    paper_bgcolor:'white', plot_bgcolor:'white',
+    paper_bgcolor:'#111118', plot_bgcolor:'#111118',
     legend:{ orientation:'h', y:1.15 },
     margin:{ t:30,b:40,l:40,r:20 },
     height:280,
-    yaxis:{ showgrid:true, gridcolor:'#f1f5f9' }
+    yaxis:{ showgrid:true, gridcolor:'#1f1f2e' }
   }, { displayModeBar:false, responsive:true });
 }
 
@@ -1824,7 +1891,7 @@ function renderCovenants(r, res, score, d) {
   const finGrid = document.getElementById('cov-finalidad-grid');
   if (finGrid) {
     finGrid.innerHTML = finCovs.map(c =>
-      `<div class="cov-card" style="border-left-color:#2563ab;">
+      `<div class="cov-card" style="border-left-color:#c9a84c;">
          <div class="cov-name">${c.name}</div>
          <div class="cov-value">${c.value}</div>
          <div class="cov-desc">${c.desc}</div>
@@ -1878,9 +1945,9 @@ function renderCovenants(r, res, score, d) {
   extras.push('Seguro de crédito sobre la cartera de clientes recomendado si concentración top-3 > 50%.');
 
   document.getElementById('cov-extra').innerHTML = extras.map(e =>
-    `<div style="display:flex;gap:.7rem;align-items:flex-start;padding:.55rem 0;border-bottom:1px solid #f1f5f9;">
-      <span style="color:#1d4ed8;font-weight:800;flex-shrink:0;">→</span>
-      <span style="font-size:.85rem;color:#374151;line-height:1.5;">${e}</span>
+    `<div style="display:flex;gap:.7rem;align-items:flex-start;padding:.55rem 0;border-bottom:1px solid #1f1f2e;">
+      <span style="color:#c9a84c;font-weight:800;flex-shrink:0;">→</span>
+      <span style="font-size:.85rem;color:#f0f0f5;line-height:1.5;">${e}</span>
     </div>`).join('');
 }
 
@@ -1929,7 +1996,7 @@ function renderDetalle(res, score, baseScore, histPenalty) {
   const rating = spRating(finalScore);
   let totalHtml = `<span style="font-size:1.1rem;color:${finalColor};">${finalScore} / 100</span> <span style="font-size:.85rem;color:${finalColor};font-weight:700;">(${rating.grade})</span>`;
   if (histPenalty && histPenalty.penalty !== 0) {
-    totalHtml += `<div style="font-size:.75rem;color:#64748b;margin-top:.2rem;">Score cuantitativo: ${Math.round(baseScore||finalScore)} → ajuste historial: ${histPenalty.penalty>0?'+':''}${histPenalty.penalty} pts</div>`;
+    totalHtml += `<div style="font-size:.75rem;color:#55556a;margin-top:.2rem;">Score cuantitativo: ${Math.round(baseScore||finalScore)} → ajuste historial: ${histPenalty.penalty>0?'+':''}${histPenalty.penalty} pts</div>`;
   }
   setText('det-total', totalHtml);
   const semC = finalScore >= 70 ? 'badge-v' : finalScore >= 40 ? 'badge-a' : 'badge-r';
@@ -2039,7 +2106,7 @@ function resetForm() {
   document.getElementById('ratio-grid').innerHTML = '';
   document.getElementById('risk-grid').innerHTML = '';
   document.getElementById('gating-banner').classList.remove('visible');
-  document.getElementById('nd-content').innerHTML = '<p style="color:#94a3b8;font-size:.85rem;">Introduzca datos para ver el análisis.</p>';
+  document.getElementById('nd-content').innerHTML = '<p style="color:#55556a;font-size:.85rem;">Introduzca datos para ver el análisis.</p>';
   document.getElementById('nd-capacity').innerHTML = '';
   document.getElementById('nd-ltv').innerHTML = '';
   document.getElementById('sect-tbody').innerHTML = '';
@@ -2123,7 +2190,7 @@ function renderColTable() {
   if (!tbody) return;
 
   if (_colRows.length === 0) {
-    tbody.innerHTML = '<tr id="col-empty"><td colspan="7" style="text-align:center;color:#94a3b8;padding:1.8rem;font-size:.85rem;">Sin activos. Pulsa "+ Añadir activo" para comenzar.</td></tr>';
+    tbody.innerHTML = '<tr id="col-empty"><td colspan="7" style="text-align:center;color:#55556a;padding:1.8rem;font-size:.85rem;">Sin activos. Pulsa "+ Añadir activo" para comenzar.</td></tr>';
     tfoot.style.display = 'none';
     return;
   }
@@ -2144,7 +2211,7 @@ function renderColTable() {
       <td style="text-align:right;"><input type="number" value="${row.bruto||''}" step="0.1" min="0" oninput="onColChange(${i},'bruto',this.value)" class="col-inp col-inp-num"></td>
       <td class="col-haircut">${Math.round(cfg.haircut*100)}%</td>
       <td class="col-neto">${neto.toFixed(2)}</td>
-      <td style="font-size:.75rem;color:#64748b;white-space:nowrap;">${cfg.execLabel}</td>
+      <td style="font-size:.75rem;color:#55556a;white-space:nowrap;">${cfg.execLabel}</td>
       <td style="text-align:center;"><button class="col-del-btn" onclick="removeColRow(${i})">×</button></td>
     </tr>`;
   }).join('');
@@ -2229,15 +2296,15 @@ function recalcColateral() {
   const perdida = Math.max(importe - totalPV, 0);
   Plotly.react('col-waterfall', [
     { type:'bar', name:'Deuda prestada',       x:['Deuda prestada'],       y:[importe],
-      marker:{color:'#1d4ed8'}, text:[importe.toFixed(2)+' M€'], textposition:'outside' },
+      marker:{color:'#c9a84c'}, text:[importe.toFixed(2)+' M€'], textposition:'outside' },
     { type:'bar', name:'Recovery esperado (PV)',x:['Recovery esperado (PV)'],y:[totalPV],
       marker:{color:'#22c55e'}, text:[totalPV.toFixed(2)+' M€ ('+recRate.toFixed(0)+'%)'], textposition:'outside' },
     { type:'bar', name:'Pérdida esperada (EL)', x:['Pérdida esperada (EL)'],y:[expLoss],
       marker:{color:'#ef4444'}, text:[expLoss.toFixed(3)+' M€'], textposition:'outside' },
   ], {
-    barmode:'group', paper_bgcolor:'white', plot_bgcolor:'white',
+    barmode:'group', paper_bgcolor:'#111118', plot_bgcolor:'#111118',
     legend:{ orientation:'h', y:1.2 },
-    yaxis:{ title:'M€', gridcolor:'#f1f5f9', showgrid:true },
+    yaxis:{ title:'M€', gridcolor:'#1f1f2e', showgrid:true },
     margin:{ t:40,b:40,l:60,r:20 }, height:300,
   }, { displayModeBar:false, responsive:true });
 
@@ -2251,13 +2318,13 @@ function recalcColateral() {
     const justCov = covered && (cumPV - row.pv) < importe;
     const rowCls  = justCov ? 'pri-covered' : covered ? 'pri-covered' : '';
     const badge   = covered
-      ? '<span style="background:#dcfce7;color:#15803d;padding:.15rem .5rem;border-radius:20px;font-size:.72rem;font-weight:700;">✓ Cubierto</span>'
-      : `<span style="background:#fee2e2;color:#991b1b;padding:.15rem .5rem;border-radius:20px;font-size:.72rem;font-weight:700;">✗ Déficit ${(importe-cumPV).toFixed(2)}M€</span>`;
+      ? '<span style="background:rgba(76,175,125,.15);color:#4caf7d;padding:.15rem .5rem;border-radius:20px;font-size:.72rem;font-weight:700;">✓ Cubierto</span>'
+      : `<span style="background:rgba(224,82,82,.15);color:#e05252;padding:.15rem .5rem;border-radius:20px;font-size:.72rem;font-weight:700;">✗ Déficit ${(importe-cumPV).toFixed(2)}M€</span>`;
     return `<tr class="${rowCls}">
-      <td style="font-weight:800;color:#1d4ed8;">${i+1}</td>
+      <td style="font-weight:800;color:#c9a84c;">${i+1}</td>
       <td>${row.label}</td>
-      <td style="color:#64748b;">${row.desc||'—'}</td>
-      <td><span style="background:#f0f4f8;border-radius:4px;padding:.15rem .4rem;font-size:.75rem;">${row.execLabel}</span></td>
+      <td style="color:#55556a;">${row.desc||'—'}</td>
+      <td><span style="background:#18181f;border-radius:4px;padding:.15rem .4rem;font-size:.75rem;">${row.execLabel}</span></td>
       <td style="text-align:right;font-weight:700;">${row.pv.toFixed(2)} M€</td>
       <td style="text-align:right;">
         <span style="font-weight:800;color:${cumPct>=100?'#15803d':cumPct>=60?'#92400e':'#991b1b'};">${Math.min(cumPct,100).toFixed(1)}%</span>
@@ -2271,22 +2338,46 @@ function recalcColateral() {
 // PDF EXPORT
 // ═══════════════════════════════════════════════════════════════
 function exportPDF() {
-  // Update cover date
+  // Update cover date and report number
   const now = new Date();
   const dateStr = now.toLocaleDateString('es-ES', { day:'2-digit', month:'long', year:'numeric' });
   const el = document.getElementById('cover-date');
   if (el) el.textContent = dateStr;
+  const crn = document.getElementById('cover-report-num');
+  if (crn) crn.textContent = document.getElementById('report-number')?.textContent || 'TO-—';
+  // Update cover sub with empresa name
+  const emp = document.getElementById('empresa-nombre')?.value;
+  const csub = document.getElementById('cover-empresa-sub');
+  if (csub && emp) csub.textContent = emp + ' — Análisis de Riesgo Crediticio';
+  // Update summary empresa paragraph
+  const sumEmp = document.getElementById('pdf-summary-empresa');
+  if (sumEmp && emp) {
+    const scoreEl = document.getElementById('badge-score');
+    const sc = scoreEl ? scoreEl.textContent : '—';
+    sumEmp.textContent = 'El presente informe analiza la operación de crédito de ' + emp +
+      ', con una puntuación de riesgo de ' + sc + '/100. Se evalúa la capacidad de servicio de la ' +
+      'deuda, el perfil de apalancamiento y los factores cualitativos del equipo directivo, ' +
+      'base de clientes y estabilidad sectorial.';
+  }
 
-  // Show cover + all sections + print headers
-  const cover    = document.getElementById('pdf-cover');
+  // Show cover + summary + all sections + legal + print headers
+  const cover   = document.getElementById('pdf-cover');
+  const summary = document.getElementById('pdf-summary');
+  const legal   = document.getElementById('pdf-legal');
   const sections = document.querySelectorAll('.section');
   const tabs     = document.querySelectorAll('.tab');
   const pHeaders = document.querySelectorAll('.print-header');
 
-  cover.style.display    = 'flex';
-  cover.style.position   = 'relative';
-  cover.style.width      = '100vw';
-  cover.style.height     = '100vh';
+  const showPage = (el) => {
+    if (!el) return;
+    el.style.display  = 'flex';
+    el.style.position = 'relative';
+    el.style.width    = '100vw';
+    el.style.height   = '100vh';
+  };
+  showPage(cover);
+  showPage(summary);
+  showPage(legal);
   sections.forEach(s => s.style.display = 'block');
   tabs.forEach(t => t.style.display = 'none');
   pHeaders.forEach(h => h.style.display = 'flex');
@@ -2295,10 +2386,13 @@ function exportPDF() {
 
   // Restore after print dialog closes
   setTimeout(() => {
-    cover.style.display    = 'none';
-    cover.style.position   = '';
-    cover.style.width      = '';
-    cover.style.height     = '';
+    [cover, summary, legal].forEach(p => {
+      if (!p) return;
+      p.style.display  = 'none';
+      p.style.position = '';
+      p.style.width    = '';
+      p.style.height   = '';
+    });
     sections.forEach(s => s.style.display = '');
     tabs.forEach(t => t.style.display = '');
     pHeaders.forEach(h => h.style.display = 'none');

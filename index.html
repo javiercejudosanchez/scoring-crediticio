@@ -4,11 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TokenOriginate | Credit Risk Scoring</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js" charset="utf-8"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <style>
 /* ── Reset & base ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #0f172a;
+body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: #F7F8FA; color: #0f172a;
        display: flex; height: 100vh; overflow: hidden; }
 
 /* ── Sidebar ── */
@@ -335,6 +337,44 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #
 .cover-footer-txt { position: absolute; bottom: 1.5rem; font-size: .72rem;
                     color: #334155; text-align: center; letter-spacing: .5px; }
 
+/* ── Score Badge SVG ── */
+.badge-wrap { display:flex; flex-direction:column; align-items:center; justify-content:center; height:220px; }
+.badge-arc  { fill:none; stroke-width:10; stroke-linecap:round;
+              transition: stroke-dashoffset .9s ease, stroke .4s; }
+/* ── Report header ── */
+.report-header { background:white; border-radius:12px; padding:.85rem 1.4rem;
+                 margin-bottom:1.1rem; box-shadow:0 1px 6px rgba(0,0,0,.06);
+                 display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; }
+.rh-left  { display:flex; align-items:center; gap:.8rem; flex:1; min-width:200px; }
+.rh-right { display:flex; gap:1.8rem; }
+.rh-meta  { text-align:right; }
+.rh-meta .rh-lbl { font-size:.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#64748b; }
+.rh-meta .rh-val { font-size:.88rem; font-weight:800; color:#1B3A6B; }
+.empresa-input { border:1px solid #e2e8f0; border-radius:6px; padding:.32rem .65rem;
+                 font-size:.88rem; font-family:inherit; font-weight:600; color:#0c2340;
+                 flex:1; max-width:280px; outline:none; background:white; }
+.empresa-input:focus { border-color:#3b82f6; }
+/* ── Credit history section ── */
+.hist-row { display:flex; justify-content:space-between; align-items:center;
+            padding:.45rem 0; border-bottom:1px solid #f1f5f9; font-size:.85rem; }
+.hist-row:last-child { border-bottom:none; }
+.hist-lbl { color:#64748b; }
+.hist-val { font-weight:700; }
+.hist-penalty { color:#dc2626; }
+.hist-bonus   { color:#15803d; }
+.hist-neutral { color:#64748b; }
+/* ── PDF upload button ── */
+.pdf-upload-btn { width:100%; margin-top:.4rem; background:#0d3b6e;
+                  color:#7eb8d8; border:1px solid #1e4976; border-radius:6px;
+                  padding:.45rem; font-size:.82rem; font-weight:600; cursor:pointer;
+                  transition:all .15s; display:flex; align-items:center;
+                  justify-content:center; gap:.4rem; }
+.pdf-upload-btn:hover { background:#1e4976; color:#c8dff0; }
+/* ── Working Capital tiles ── */
+.wc-summary-row { display:flex; justify-content:space-between; align-items:center;
+                  padding:.5rem 0; border-bottom:1px solid #f1f5f9; }
+.wc-summary-row:last-child { border-bottom:none; }
+
 /* ── Print ── */
 @media print {
   #pdf-cover { display: flex !important; position: relative;
@@ -465,11 +505,25 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #
   <div class="field"><label>Pasivo corriente</label><input type="number" id="pasivo_corriente" step="0.1" value="28"></div>
   <div class="field"><label>Clientes (cobrar)</label><input type="number" id="clientes" step="0.1" value="22"></div>
   <div class="field"><label>Proveedores (pagar)</label><input type="number" id="proveedores" step="0.1" value="18"></div>
+  <div class="field"><label>Inventario (M€)</label><input type="number" id="inventario" step="0.1" value="0"></div>
+  <div class="field"><label>Aprovisionamientos (M€)</label><input type="number" id="aprovisionamientos" step="0.1" value="0"></div>
   <div class="field"><label>Vida media deuda (años)</label><input type="number" id="vida_media" step="0.5" value="5"></div>
 
   <hr class="sb-sep">
   <!-- Operación nueva -->
   <div class="sb-sec">Operación Nueva (opcional)</div>
+  <div class="field">
+    <label>Finalidad del préstamo</label>
+    <select id="finalidad">
+      <option value="maquinaria">Adquisición maquinaria / Capex</option>
+      <option value="circulante">Financiación circulante</option>
+      <option value="refinanciacion">Refinanciación deuda existente</option>
+      <option value="ma">M&amp;A / Adquisición empresa</option>
+      <option value="internacional">Expansión internacional</option>
+      <option value="idi">I+D+i / Innovación</option>
+      <option value="otro">Otro / General</option>
+    </select>
+  </div>
   <div class="field"><label>Importe solicitado (M€)</label><input type="number" id="importe" step="0.1" value="0" oninput="updateLtvIndicator()"></div>
   <div class="field"><label>Plazo (años)</label><input type="number" id="plazo" step="1" value="5"></div>
   <div class="field"><label>Tipo interés (%)</label><input type="number" id="tipo_int" step="0.1" value="6"></div>
@@ -490,6 +544,50 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #
     </select>
   </div>
   <div id="ltv-indicator" class="ltv-indicator"></div>
+
+  <hr class="sb-sep">
+  <!-- Historial Crediticio -->
+  <div class="sb-sec">Historial Crediticio</div>
+  <div class="field">
+    <label>RAI / Morosidad</label>
+    <select id="rai">
+      <option value="ninguna">Sin incidencias en RAI</option>
+      <option value="antiguas">Incidencias antiguas (&gt;3 años)</option>
+      <option value="activas">Incidencias activas en RAI</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>ASNEF</label>
+    <select id="asnef">
+      <option value="no">No consta en ASNEF</option>
+      <option value="si">Consta en ASNEF</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>Impagos históricos</label>
+    <select id="impagos">
+      <option value="ninguno">Sin impagos</option>
+      <option value="puntual">Impago puntual (1–2)</option>
+      <option value="recurrente">Impagos recurrentes (&gt;2)</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>Demandas judiciales</label>
+    <select id="demandas">
+      <option value="ninguna">Sin demandas</option>
+      <option value="menor">Demanda menor (&lt;50k€)</option>
+      <option value="relevante">Demanda relevante (&gt;50k€)</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>Relación bancaria</label>
+    <select id="relacion_bancaria">
+      <option value="buena">Buena (5+ años sin incidencias)</option>
+      <option value="normal">Normal</option>
+      <option value="deteriorada">Deteriorada o tensa</option>
+    </select>
+  </div>
+  <div class="field"><label>Años sin incidencias</label><input type="number" id="anios_sin_incidencias" value="0" min="0" max="30" step="1"></div>
 
   <hr class="sb-sep">
   <!-- Cualitativos -->
@@ -552,6 +650,8 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #
   </div>
 
   <hr class="sb-sep">
+  <button class="pdf-upload-btn" onclick="document.getElementById('pdf-file-input').click()">📄 Subir estados financieros (PDF)</button>
+  <input type="file" id="pdf-file-input" accept=".pdf" style="display:none" onchange="processPDF(this)">
   <button class="action-btn" onclick="update()">Calcular scoring</button>
   <button class="reset-btn" onclick="resetForm()">Nueva valoración</button>
   <button class="pdf-btn" onclick="exportPDF()">⬇ Descargar PDF</button>
@@ -580,6 +680,24 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #
     <span style="font-size:.72rem;color:#94a3b8;">Credit Risk Scoring Report — Uso interno</span>
   </div>
 
+  <!-- Report header -->
+  <div class="report-header">
+    <div class="rh-left">
+      <span style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:#64748b;letter-spacing:.5px;white-space:nowrap;">Empresa</span>
+      <input id="empresa-nombre" class="empresa-input" type="text" placeholder="Nombre de la empresa...">
+    </div>
+    <div class="rh-right">
+      <div class="rh-meta">
+        <div class="rh-lbl">Nº Informe</div>
+        <div class="rh-val" id="report-number">TO-—</div>
+      </div>
+      <div class="rh-meta">
+        <div class="rh-lbl">Fecha</div>
+        <div class="rh-val" style="color:#374151;" id="report-date">—</div>
+      </div>
+    </div>
+  </div>
+
   <div class="main-header">
     <div>
       <h1>Credit Risk Scoring</h1>
@@ -590,6 +708,7 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #
   <!-- Tabs -->
   <div class="tabs">
     <div class="tab active"   onclick="switchTab('scoring')">Scoring</div>
+    <div class="tab inactive" onclick="switchTab('wc')">Working Capital</div>
     <div class="tab inactive" onclick="switchTab('nueva_deuda')">Nueva Deuda</div>
     <div class="tab inactive" onclick="switchTab('comparables')">Comparables</div>
     <div class="tab inactive" onclick="switchTab('covenants')">Covenants</div>
@@ -640,11 +759,24 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #
       </div>
     </div>
 
-    <!-- Score row: gauge + bar -->
+    <!-- Score row: badge + bar -->
     <div class="score-row">
       <div class="card">
         <div class="card-title">Score Global</div>
-        <div id="gauge-chart" style="height:210px;"></div>
+        <div class="badge-wrap">
+          <svg width="170" height="170" viewBox="0 0 160 160">
+            <circle cx="80" cy="80" r="72" fill="none" stroke="#f1f5f9" stroke-width="10"/>
+            <circle id="badge-arc" class="badge-arc" cx="80" cy="80" r="72"
+                    stroke="#e2e8f0" stroke-dasharray="452.4" stroke-dashoffset="452.4"
+                    transform="rotate(-90 80 80)"/>
+            <text id="badge-score" x="80" y="68" text-anchor="middle"
+                  font-family="Inter,sans-serif" font-size="34" font-weight="900" fill="#0c2340">—</text>
+            <text id="badge-rating" x="80" y="94" text-anchor="middle"
+                  font-family="Inter,sans-serif" font-size="17" font-weight="700" fill="#64748b">—</text>
+            <text id="badge-rating-desc" x="80" y="113" text-anchor="middle"
+                  font-family="Inter,sans-serif" font-size="10" fill="#94a3b8">Score Global</text>
+          </svg>
+        </div>
       </div>
       <div class="card">
         <div class="card-title">Contribución por Métrica</div>
@@ -662,6 +794,12 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #
       </div>
     </div>
 
+    <!-- Perfil crediticio -->
+    <div id="credit-hist-section" class="card" style="margin-bottom:1.4rem;display:none;">
+      <div class="card-title">Perfil Crediticio — Ajuste por Historial</div>
+      <div id="credit-hist-content"></div>
+    </div>
+
     <!-- Ratio tiles -->
     <div class="ratio-grid" id="ratio-grid"></div>
 
@@ -677,8 +815,25 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #
 
   </div><!-- /tab-scoring -->
 
+  <!-- ── TAB: WORKING CAPITAL ── -->
+  <div id="tab-wc" class="section" data-title="Análisis Capital Circulante">
+    <div class="ratio-grid" id="wc-grid" style="margin-bottom:1.4rem;"></div>
+    <div class="card" style="margin-bottom:1.4rem;">
+      <div class="card-title">Ciclo de Conversión del Efectivo</div>
+      <div id="wc-cycle-chart" style="height:220px;"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Resumen Capital Circulante</div>
+      <div id="wc-summary"></div>
+    </div>
+  </div>
+
   <!-- ── TAB: NUEVA DEUDA ── -->
   <div id="tab-nueva_deuda" class="section" data-title="Análisis Nueva Deuda">
+    <div class="card" style="margin-bottom:1.2rem;">
+      <div class="card-title">Descripción de la Operación</div>
+      <div id="nd-finalidad-content"><p style="color:#94a3b8;font-size:.85rem;">Configure los datos en el panel lateral.</p></div>
+    </div>
     <div class="nueva-deuda-grid">
       <div class="nd-result card">
         <div class="card-title">Análisis de Servicio de Deuda Nueva</div>
@@ -724,7 +879,11 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #
   <!-- ── TAB: COVENANTS ── -->
   <div id="tab-covenants" class="section">
     <div style="margin-bottom:1.2rem;">
-      <div class="card-title" style="margin-bottom:.8rem;">Covenants Financieros Sugeridos</div>
+      <div class="card-title" style="margin-bottom:.8rem;">Covenants Específicos por Finalidad</div>
+      <div class="cov-grid" id="cov-finalidad-grid"></div>
+    </div>
+    <div style="margin-bottom:1.2rem;">
+      <div class="card-title" style="margin-bottom:.8rem;">Covenants Financieros Estándar</div>
       <div class="cov-grid" id="cov-grid"></div>
     </div>
     <div class="card" style="margin-bottom:1.2rem;">
@@ -837,6 +996,250 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #
 // ═══════════════════════════════════════════════════════════════
 // SCORING MODEL v2
 // ═══════════════════════════════════════════════════════════════
+
+// ── S&P Rating + Badge ──
+const CIRC = 2 * Math.PI * 72; // ≈ 452.4
+
+function spRating(score) {
+  if (score >= 90) return { grade:'AAA', desc:'Calidad máxima' };
+  if (score >= 80) return { grade:'AA',  desc:'Muy alta calidad' };
+  if (score >= 70) return { grade:'A',   desc:'Alta calidad' };
+  if (score >= 60) return { grade:'BBB', desc:'Grado inversión' };
+  if (score >= 50) return { grade:'BB',  desc:'Grado especulativo' };
+  if (score >= 40) return { grade:'B',   desc:'Especulativo' };
+  if (score >= 30) return { grade:'CCC', desc:'Alto riesgo' };
+  return { grade:'CC/D', desc:'En default / Impago' };
+}
+
+function updateBadge(score, gate) {
+  const arc      = document.getElementById('badge-arc');
+  const scoreEl  = document.getElementById('badge-score');
+  const ratingEl = document.getElementById('badge-rating');
+  const descEl   = document.getElementById('badge-rating-desc');
+  if (!arc) return;
+  const s = Math.max(0, Math.min(100, score));
+  const offset = CIRC * (1 - s / 100);
+  const color = gate ? '#ef4444' : s >= 80 ? '#22c55e' : s >= 60 ? '#f59e0b' : s >= 40 ? '#f97316' : '#ef4444';
+  arc.style.strokeDashoffset = offset;
+  arc.style.stroke = color;
+  if (scoreEl)  scoreEl.textContent  = Math.round(s);
+  if (ratingEl) { const r = spRating(s); ratingEl.textContent = r.grade; ratingEl.style.fill = color; }
+  if (descEl)   { const r = spRating(s); descEl.textContent = r.desc; }
+}
+
+// ── Spanish number parser ──
+function parseSpanishNum(s) {
+  if (!s) return null;
+  const v = parseFloat(s.replace(/\./g, '').replace(',', '.'));
+  return isNaN(v) ? null : v;
+}
+
+// ── PDF extraction ──
+async function processPDF(input) {
+  const file = input.files[0];
+  if (!file) return;
+  try {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+    const ab   = await file.arrayBuffer();
+    const pdf  = await pdfjsLib.getDocument({ data: ab }).promise;
+    let text = '';
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page  = await pdf.getPage(p);
+      const tc    = await page.getTextContent();
+      text += tc.items.map(i => i.str).join(' ') + '\n';
+    }
+    const filled = extractFinancials(text);
+    const count  = Object.keys(filled).length;
+    let msg = `PDF analizado. Se encontraron ${count} campos:\n`;
+    Object.entries(filled).forEach(([k, v]) => { msg += `  • ${k}: ${v}\n`; });
+    if (count === 0) msg += '  No se detectaron valores numéricos con los patrones esperados.';
+    alert(msg);
+  } catch(e) {
+    alert('Error al procesar el PDF: ' + e.message);
+  }
+  input.value = '';
+}
+
+function extractFinancials(text) {
+  const PATS = [
+    { id:'ventas',           re:/(?:ventas?\s*netas?|ingresos?\s*(?:de\s*explotaci[oó]n)?|cifra\s*de\s*negocios?)\s*[:\-]?\s*([\d.,]+)/i },
+    { id:'ebitda',           re:/ebitda\s*[:\-]?\s*([\d.,]+)/i },
+    { id:'gastos_fin',       re:/gastos?\s*financieros?\s*[:\-]?\s*([\d.,]+)/i },
+    { id:'deuda_bruta',      re:/(?:deuda\s*financiera|pasivos?\s*financieros?|pr[eé]stamos?)\s*[:\-]?\s*([\d.,]+)/i },
+    { id:'caja',             re:/(?:caja\s*(?:y\s*bancos?)?|efectivo\s*(?:y\s*equivalentes?)?|tesorer[ií]a)\s*[:\-]?\s*([\d.,]+)/i },
+    { id:'activo_corriente', re:/activo\s*corriente\s*[:\-]?\s*([\d.,]+)/i },
+    { id:'pasivo_corriente', re:/pasivo\s*corriente\s*[:\-]?\s*([\d.,]+)/i },
+    { id:'clientes',         re:/(?:clientes|deudores?\s*comerciales?)\s*[:\-]?\s*([\d.,]+)/i },
+    { id:'proveedores',      re:/(?:proveedores|acreedores?\s*comerciales?)\s*[:\-]?\s*([\d.,]+)/i },
+    { id:'inventario',       re:/(?:existencias|inventario|stocks?)\s*[:\-]?\s*([\d.,]+)/i },
+  ];
+  const filled = {};
+  PATS.forEach(({ id, re }) => {
+    const m = text.match(re);
+    if (m) {
+      const v = parseSpanishNum(m[1]);
+      if (v !== null && v > 0) {
+        const el = document.getElementById(id);
+        if (el) { el.value = v; filled[id] = v; }
+      }
+    }
+  });
+  if (Object.keys(filled).length > 0) updateLtvIndicator();
+  return filled;
+}
+
+// ── Working Capital ──
+function calcWC(d) {
+  const ventas = Math.max(d.ventas, 0.001);
+  const aprov  = d.aprovisionamientos > 0 ? d.aprovisionamientos : ventas * 0.6;
+  const fm     = d.activo_corriente - d.pasivo_corriente;
+  const fm_pct = fm / ventas * 100;
+  const pmc    = d.clientes  / ventas * 365;
+  const pmp    = d.proveedores / Math.max(aprov, 0.001) * 365;
+  const pma    = d.inventario > 0 ? d.inventario / Math.max(aprov, 0.001) * 365 : null;
+  const ciclo  = pma !== null ? pmc + pma - pmp : pmc - pmp;
+  const nfm    = d.clientes + (d.inventario || 0) - d.proveedores;
+  const nfm_pct = nfm / ventas * 100;
+  return { fm, fm_pct, pmc, pmp, pma, ciclo, nfm, nfm_pct, aprov };
+}
+
+function renderWorkingCapital(d, wc) {
+  const grid = document.getElementById('wc-grid');
+  const summ = document.getElementById('wc-summary');
+  if (!grid) return;
+
+  const tile = (label, value, sub, cls) =>
+    `<div class="ratio-tile ${cls}"><div class="rt-label">${label}</div><div class="rt-value">${value}</div><div class="rt-sub">${sub}</div></div>`;
+
+  const fmCls    = wc.fm >= 0 ? 'verde' : 'rojo';
+  const fmPctCls = wc.fm_pct > 10 ? 'verde' : wc.fm_pct > 5 ? 'amarillo' : 'rojo';
+  const pmcCls   = wc.pmc < 45 ? 'verde' : wc.pmc < 90 ? 'amarillo' : 'rojo';
+  const pmpCls   = wc.pmp > 45 ? 'verde' : wc.pmp > 30 ? 'amarillo' : 'rojo';
+  const pmaCls   = wc.pma === null ? '' : wc.pma < 30 ? 'verde' : wc.pma < 60 ? 'amarillo' : 'rojo';
+  const cicloCls = wc.ciclo < 30 ? 'verde' : wc.ciclo < 60 ? 'amarillo' : 'rojo';
+  const nfmCls   = wc.nfm_pct < 20 ? 'verde' : wc.nfm_pct < 40 ? 'amarillo' : 'rojo';
+
+  grid.innerHTML =
+    tile('Fondo de Maniobra', wc.fm.toFixed(1)+' M€', 'Activo corriente − Pasivo corriente', fmCls) +
+    tile('FM / Ventas', wc.fm_pct.toFixed(1)+'%', 'Cobertura circulante', fmPctCls) +
+    tile('PMC (Días Cobro)', Math.round(wc.pmc)+' días', 'Clientes / Ventas × 365', pmcCls) +
+    tile('PMP (Días Pago)', Math.round(wc.pmp)+' días', 'Proveedores / Aprovisionam.', pmpCls) +
+    (wc.pma !== null ? tile('PMA (Días Stock)', Math.round(wc.pma)+' días', 'Inventario / Aprovisionam.', pmaCls) : '') +
+    tile('Ciclo de Caja', Math.round(wc.ciclo)+' días', 'PMC + PMA − PMP', cicloCls) +
+    tile('NFM', wc.nfm.toFixed(1)+' M€', 'Clientes + Stock − Proveedores ('+wc.nfm_pct.toFixed(1)+'% ventas)', nfmCls);
+
+  // Cycle Waterfall chart
+  const labels = ['PMC (cobro)', wc.pma !== null ? 'PMA (stock)' : null, 'PMP (pago)', 'Ciclo neto'].filter(Boolean);
+  const vals   = [wc.pmc, wc.pma, -wc.pmp, wc.ciclo].filter(v => v !== null);
+  const colors = [pmcCls, pmaCls, 'verde', cicloCls].filter((_, i) => [true, wc.pma !== null, true, true][i])
+    .map(c => c === 'verde' ? '#22c55e' : c === 'amarillo' ? '#f59e0b' : c === 'rojo' ? '#ef4444' : '#64748b');
+  Plotly.react('wc-cycle-chart', [{ type:'bar', x:labels, y:vals, marker:{ color:colors },
+    text:vals.map(v => Math.round(v)+' d'), textposition:'outside' }], {
+    paper_bgcolor:'white', plot_bgcolor:'white', margin:{t:20,b:30,l:40,r:20},
+    yaxis:{ title:'Días', showgrid:true, gridcolor:'#f1f5f9' }, height:220
+  }, { displayModeBar:false, responsive:true });
+
+  // Summary
+  summ.innerHTML = `
+    <div class="wc-summary-row"><span class="nd-lbl">Fondo de Maniobra (FM)</span><span class="nd-val ${wc.fm>=0?'':''}"><b>${wc.fm.toFixed(2)} M€</b> — ${wc.fm>=0?'Positivo ✓':'Negativo ⚠'}</span></div>
+    <div class="wc-summary-row"><span class="nd-lbl">Necesidades de FM (NFM)</span><span class="nd-val"><b>${wc.nfm.toFixed(2)} M€</b> (${wc.nfm_pct.toFixed(1)}% ventas)</span></div>
+    <div class="wc-summary-row"><span class="nd-lbl">Superávit / Déficit circulante</span><span class="nd-val" style="color:${wc.fm-wc.nfm>=0?'#15803d':'#dc2626'};"><b>${(wc.fm-wc.nfm).toFixed(2)} M€</b></span></div>
+    <div class="wc-summary-row"><span class="nd-lbl">Aprovisionamientos usados</span><span class="nd-val">${wc.aprov.toFixed(1)} M€ ${d.aprovisionamientos>0?'(declarado)':'(estimado 60% ventas)'}</span></div>`;
+}
+
+// ── Historial Crediticio ──
+function calcHistorialPenalty(d) {
+  let penalty = 0;
+  const reasons = [];
+  if (d.rai === 'activas')                { penalty -= 15; reasons.push({ txt:'RAI activas', pts:-15 }); }
+  if (d.asnef === 'si')                   { penalty -= 5;  reasons.push({ txt:'ASNEF activo', pts:-5 }); }
+  if (d.impagos === 'recurrente')         { penalty -= 10; reasons.push({ txt:'Impagos recurrentes', pts:-10 }); }
+  if (d.demandas === 'relevante')         { penalty -= 8;  reasons.push({ txt:'Demanda judicial relevante', pts:-8 }); }
+  if (d.relacion_bancaria === 'deteriorada') { penalty -= 5; reasons.push({ txt:'Relación bancaria deteriorada', pts:-5 }); }
+  if ((d.anios_sin_incidencias || 0) >= 5) { penalty += 3; reasons.push({ txt:'≥5 años sin incidencias', pts:3 }); }
+  return { penalty, reasons };
+}
+
+function renderCreditHistory(d, histPenalty) {
+  const sec = document.getElementById('credit-hist-section');
+  const cnt = document.getElementById('credit-hist-content');
+  if (!sec || !cnt) return;
+  if (histPenalty.reasons.length === 0 && histPenalty.penalty === 0) {
+    sec.style.display = 'none'; return;
+  }
+  sec.style.display = '';
+  const rows = histPenalty.reasons.map(r =>
+    `<div class="hist-row">
+       <span class="hist-lbl">${r.txt}</span>
+       <span class="hist-val ${r.pts > 0 ? 'hist-bonus' : 'hist-penalty'}">${r.pts > 0 ? '+' : ''}${r.pts} pts</span>
+     </div>`).join('');
+  const totalCls = histPenalty.penalty > 0 ? 'hist-bonus' : histPenalty.penalty < 0 ? 'hist-penalty' : 'hist-neutral';
+  cnt.innerHTML = rows +
+    `<div class="hist-row" style="border-top:2px solid #e2e8f0;margin-top:.3rem;padding-top:.5rem;">
+       <span style="font-weight:700;color:#0c2340;">Ajuste total sobre score cuantitativo</span>
+       <span class="hist-val ${totalCls}" style="font-size:1rem;">${histPenalty.penalty > 0 ? '+' : ''}${histPenalty.penalty} pts</span>
+     </div>`;
+}
+
+// ── Finalidad covenants ──
+function getFinalidadCovenants(finalidad, r) {
+  const map = {
+    maquinaria:    [
+      { name:'Ratio activo neto', value:'≥ 1.2x', desc:'Valor neto activos fijos / Deuda senior. Revisión anual.' },
+      { name:'Capex adicional',   value:'Previa aprobación', desc:'Cualquier inversión en activos fijos adicional requiere consentimiento del banco.' }],
+    circulante:    [
+      { name:'Ciclo de caja máx.', value:'≤ 90 días', desc:'Control del ciclo operativo. Deterioro requiere notificación inmediata.' },
+      { name:'Quick ratio mín.',   value:'≥ 1.0x', desc:'Activos líquidos / Pasivo corriente. Revisión trimestral.' }],
+    refinanciacion:[
+      { name:'Amortización',     value:'100% cumplimiento', desc:'Amortización según calendario pactado sin diferimiento posible.' },
+      { name:'Restricción deuda',value:'Sin nueva deuda senior', desc:'Hasta reducción del 50% del principal no se permite nueva deuda financiera.' }],
+    ma:            [
+      { name:'Leverage post-deal', value:`≤ ${Math.min(+(r.deuda_ebitda<0?2.5:r.deuda_ebitda*1.5+0.5).toFixed(1),6.0)}x DFN/EBITDA`, desc:'Límite combinado post-adquisición. Covenant inicial más restrictivo por 24 meses.' },
+      { name:'Integración',        value:'Reporting semestral', desc:'Plan de integración con KPIs de sinergias. Incumplimiento activa consulta previa.' }],
+    internacional: [
+      { name:'Cobertura FX',      value:'≥ 80% exposición', desc:'Posiciones en divisas cubiertas mediante instrumentos autorizados.' },
+      { name:'Ratio exportación', value:'≥ 20% ventas', desc:'Mínimo de ingresos de exportación durante la vida del préstamo.' }],
+    idi:           [
+      { name:'Propiedad intelectual', value:'Sin cesión', desc:'IP desarrollada con esta financiación no puede cederse sin consentimiento del banco.' },
+      { name:'Hitos de proyecto',     value:'Reporting trimestral', desc:'Avance del proyecto I+D reportado con métricas de ejecución acordadas.' }],
+    otro:          [
+      { name:'Uso de fondos', value:'Conforme escritura', desc:'Los fondos deben destinarse exclusivamente al fin declarado en la póliza de préstamo.' }]
+  };
+  return map[finalidad] || map.otro;
+}
+
+// ── Descripción de la operación ──
+function renderDescripcionOperacion(d, r, nd) {
+  const el = document.getElementById('nd-finalidad-content');
+  if (!el) return;
+  const labels = {
+    maquinaria:'Adquisición de maquinaria / Capex productivo',
+    circulante:'Financiación de capital circulante',
+    refinanciacion:'Refinanciación de deuda existente',
+    ma:'M&A / Adquisición corporativa',
+    internacional:'Expansión internacional',
+    idi:'I+D+i / Innovación tecnológica',
+    otro:'Propósito general / Otro'
+  };
+  const descs = {
+    maquinaria:'Operación estructurada para financiar activos productivos. Amortización alineada con vida útil del activo. Garantía hipotecaria sobre el bien recomendada.',
+    circulante:'Línea de financiación del ciclo operativo. Revisión anual de límite conforme a evolución del ciclo de caja. Factoring como alternativa complementaria.',
+    refinanciacion:'Restructuración del pasivo financiero existente. Objetivo: mejora del perfil de vencimientos y coste financiero. Covenant de no nueva deuda hasta reducción del 30% del principal.',
+    ma:'Operación de crecimiento inorgánico. Análisis de sinergias y métricas pro-forma requeridas. Periodo de gracia de 12–24 meses para estabilización del perímetro.',
+    internacional:'Financiación de expansión en mercados exteriores. Análisis de riesgo país y exposición cambiaria. Seguro de crédito a la exportación recomendado (CESCE).',
+    idi:'Operación de innovación con activos intangibles. Milestone-based disbursement recomendado. Due diligence técnica especializada necesaria.',
+    otro:'Operación de propósito general. Aplicar covenants estándar. Clarificar uso de fondos en documentación contractual.'
+  };
+  const f = d.finalidad || 'otro';
+  el.innerHTML = `
+    <div class="nd-row"><span class="nd-lbl">Finalidad declarada</span><span class="nd-val" style="color:#1d4ed8;">${labels[f]||labels.otro}</span></div>
+    <div style="background:#f8fafc;border-radius:8px;padding:.85rem;margin:.7rem 0;font-size:.85rem;color:#374151;line-height:1.6;">${descs[f]||descs.otro}</div>
+    ${d.importe > 0 ? `
+    <div class="nd-row"><span class="nd-lbl">Importe solicitado</span><span class="nd-val">${d.importe.toFixed(2)} M€</span></div>
+    <div class="nd-row"><span class="nd-lbl">Plazo</span><span class="nd-val">${d.plazo} años</span></div>
+    <div class="nd-row"><span class="nd-lbl">Tipo de interés</span><span class="nd-val">${d.tipo_int}%</span></div>
+    ` : '<p style="color:#94a3b8;font-size:.83rem;margin-top:.5rem;">Introduzca importe y plazo en el panel para ver el análisis de viabilidad DSCR.</p>'}`;
+}
 
 const PESOS = {
   dscr:          { peso: 25.0, nombre: 'DSCR',             gating: true  },
@@ -1000,9 +1403,8 @@ function calcNuevaDeuda(d, r) {
 // READ INPUTS
 // ═══════════════════════════════════════════════════════════════
 function readInputs() {
-  const g = id => parseFloat(document.getElementById(id).value) || 0;
-  const gs = id => document.getElementById(id).value;
-  // If inventory has data, use its total bruto as collateral (improves LTV scoring)
+  const g  = id => parseFloat(document.getElementById(id).value) || 0;
+  const gs = id => { const el = document.getElementById(id); return el ? el.value : ''; };
   const invTotal = _colRows.reduce((s,r) => s + (parseFloat(r.bruto)||0), 0);
   return {
     ventas: g('ventas'), ebitda: g('ebitda'), gastos_fin: g('gastos_fin'),
@@ -1010,9 +1412,15 @@ function readInputs() {
     deuda_bruta: g('deuda_bruta'), caja: g('caja'),
     activo_corriente: g('activo_corriente'), pasivo_corriente: g('pasivo_corriente'),
     clientes: g('clientes'), proveedores: g('proveedores'), vida_media: g('vida_media'),
+    inventario: g('inventario'), aprovisionamientos: g('aprovisionamientos'),
     importe: g('importe'), plazo: g('plazo'), tipo_int: g('tipo_int'),
     colateral: invTotal > 0 ? invTotal : g('colateral'),
     tipo_col: gs('tipo_col'),
+    finalidad: gs('finalidad') || 'maquinaria',
+    rai: gs('rai') || 'ninguna', asnef: gs('asnef') || 'no',
+    impagos: gs('impagos') || 'ninguno', demandas: gs('demandas') || 'ninguna',
+    relacion_bancaria: gs('relacion_bancaria') || 'buena',
+    anios_sin_incidencias: g('anios_sin_incidencias'),
     equipo: parseInt(gs('equipo')), concentracion: parseInt(gs('concentracion')),
     antiguedad: parseInt(gs('antiguedad')), ciclicidad: parseInt(gs('ciclicidad')),
     sector_comp: gs('sector_comp'),
@@ -1100,27 +1508,30 @@ function update() {
   const d = readInputs();
   const r = calcRatios(d);
 
-  // Attach qualitative to ratios object for scoring
   r.equipo = d.equipo; r.concentracion = d.concentracion;
   r.antiguedad = d.antiguedad; r.ciclicidad = d.ciclicidad;
 
-  const res   = calcScores(r);
-  const score = Math.round(totalScore(res));
-  const gate  = checkGating(res);
-  const nd    = calcNuevaDeuda(d, r);
+  const res       = calcScores(r);
+  const baseScore = Math.round(totalScore(res));
+  const histPenalty = calcHistorialPenalty(d);
+  const score     = Math.max(0, Math.min(100, baseScore + histPenalty.penalty));
+  const gate      = checkGating(res);
+  const nd        = calcNuevaDeuda(d, r);
+  const wc        = calcWC(d);
 
-  _currentData = { d, r, res, score, gate, nd };
+  _currentData = { d, r, res, score, baseScore, gate, nd, wc, histPenalty };
 
-  renderScoring(d, r, res, score, gate);
+  renderScoring(d, r, res, score, baseScore, gate, histPenalty);
+  renderWorkingCapital(d, wc);
   renderNuevaDeuda(d, r, nd);
   renderComparables(d, r);
-  renderCovenants(r, res, score);
-  renderDetalle(res, score);
+  renderCovenants(r, res, score, d);
+  renderDetalle(res, score, baseScore, histPenalty);
   recalcColateral();
 }
 
 // ── SCORING TAB ──
-function renderScoring(d, r, res, score, gate) {
+function renderScoring(d, r, res, score, baseScore, gate, histPenalty) {
   // KPIs
   setText('kpi-ebitda',  r.ebitda.toFixed(1) + ' M€');
   setText('kpi-margin',  r.ebitda_margin.toFixed(1) + '%');
@@ -1138,25 +1549,8 @@ function renderScoring(d, r, res, score, gate) {
     banner.classList.remove('visible');
   }
 
-  // Gauge
-  const color = gate ? '#ef4444' : score >= 70 ? '#22c55e' : score >= 40 ? '#f59e0b' : '#ef4444';
-  Plotly.react('gauge-chart', [{
-    type: 'indicator', mode: 'gauge+number',
-    value: score,
-    gauge: {
-      axis: { range:[0,100], tickfont:{size:10} },
-      bar:  { color },
-      steps: [
-        { range:[0,40],  color:'#fee2e2' },
-        { range:[40,70], color:'#fef3c7' },
-        { range:[70,100],color:'#dcfce7' },
-      ],
-      threshold: { line:{color:'#0c2340',width:3}, thickness:.75, value: score }
-    },
-    number: { font:{size:36, color:'#0c2340'} }
-  }], {
-    margin:{t:10,b:10,l:30,r:30}, paper_bgcolor:'white', height:210
-  }, { displayModeBar:false, responsive:true });
+  // SVG Badge
+  updateBadge(score, gate);
 
   // Stacked bar
   const labels = Object.values(res).map(v => v.nombre);
@@ -1203,6 +1597,9 @@ function renderScoring(d, r, res, score, gate) {
   setText('rec-icon', icon);
   setText('rec-decision', decision);
   setText('rec-text', text);
+
+  // Credit history
+  renderCreditHistory(d, histPenalty);
 
   // Ratio tiles
   const fmtMap = {
@@ -1274,6 +1671,7 @@ function renderScoring(d, r, res, score, gate) {
 
 // ── NUEVA DEUDA TAB ──
 function renderNuevaDeuda(d, r, nd) {
+  renderDescripcionOperacion(d, r, nd);
   const ndC   = document.getElementById('nd-content');
   const ndCap = document.getElementById('nd-capacity');
   const ndLtv = document.getElementById('nd-ltv');
@@ -1420,7 +1818,18 @@ function renderComparables(d, r) {
 }
 
 // ── COVENANTS TAB ──
-function renderCovenants(r, res, score) {
+function renderCovenants(r, res, score, d) {
+  // Finalidad-specific covenants
+  const finCovs = getFinalidadCovenants(d ? d.finalidad : 'otro', r);
+  const finGrid = document.getElementById('cov-finalidad-grid');
+  if (finGrid) {
+    finGrid.innerHTML = finCovs.map(c =>
+      `<div class="cov-card" style="border-left-color:#2563ab;">
+         <div class="cov-name">${c.name}</div>
+         <div class="cov-value">${c.value}</div>
+         <div class="cov-desc">${c.desc}</div>
+       </div>`).join('');
+  }
   // Covenant values
   const dnCov   = Math.min(+(r.deuda_ebitda < 0 ? 2.0 : r.deuda_ebitda * 1.35 + 0.5).toFixed(2), 5.0);
   const dscrCov = Math.max(+(r.dscr * 0.82).toFixed(2), 1.10);
@@ -1476,7 +1885,7 @@ function renderCovenants(r, res, score) {
 }
 
 // ── DETALLE TAB ──
-function renderDetalle(res, score) {
+function renderDetalle(res, score, baseScore, histPenalty) {
   const fmtValMap = {
     dscr:          v => v.toFixed(2)+'x',
     deuda_ebitda:  v => v < 0 ? 'Caja neta' : v.toFixed(2)+'x',
@@ -1517,7 +1926,12 @@ function renderDetalle(res, score) {
 
   const finalScore = Math.round(score);
   const finalColor = finalScore >= 70 ? '#22c55e' : finalScore >= 40 ? '#f59e0b' : '#ef4444';
-  setText('det-total', `<span style="font-size:1.1rem;color:${finalColor};">${finalScore} / 100</span>`);
+  const rating = spRating(finalScore);
+  let totalHtml = `<span style="font-size:1.1rem;color:${finalColor};">${finalScore} / 100</span> <span style="font-size:.85rem;color:${finalColor};font-weight:700;">(${rating.grade})</span>`;
+  if (histPenalty && histPenalty.penalty !== 0) {
+    totalHtml += `<div style="font-size:.75rem;color:#64748b;margin-top:.2rem;">Score cuantitativo: ${Math.round(baseScore||finalScore)} → ajuste historial: ${histPenalty.penalty>0?'+':''}${histPenalty.penalty} pts</div>`;
+  }
+  setText('det-total', totalHtml);
   const semC = finalScore >= 70 ? 'badge-v' : finalScore >= 40 ? 'badge-a' : 'badge-r';
   const semT = finalScore >= 70 ? 'VERDE'   : finalScore >= 40 ? 'AMARILLO' : 'ROJO';
   document.getElementById('det-semaforo').innerHTML = `<span class="${semC}">${semT}</span>`;
@@ -1531,9 +1945,13 @@ const EXAMPLES = {
     ventas:767.5, ebitda:107, gastos_fin:14.5, imp_pagado:5, capex_mant:20,
     deuda_bruta:420, caja:165, activo_corriente:480, pasivo_corriente:378,
     clientes:76, proveedores:473, vida_media:4,
+    inventario:85, aprovisionamientos:580,
     importe:0, plazo:5, tipo_int:6, colateral:0, tipo_col:'inmueble',
     equipo:'4', concentracion:'3', antiguedad:'5', ciclicidad:'2',
     sector_comp:'metalurgia',
+    finalidad:'refinanciacion',
+    rai:'ninguna', asnef:'no', impagos:'ninguno', demandas:'ninguna',
+    relacion_bancaria:'buena', anios_sin_incidencias:10,
     colRows: [
       { tipo:'nave',          desc:'Naves industriales Amurrio/Llodio', bruto:180 },
       { tipo:'maquinaria',    desc:'Líneas de producción tubos sin costura', bruto:95 },
@@ -1544,35 +1962,44 @@ const EXAMPLES = {
     ventas:200, ebitda:46, gastos_fin:3, imp_pagado:5, capex_mant:3,
     deuda_bruta:40, caja:22, activo_corriente:90, pasivo_corriente:45,
     clientes:35, proveedores:30, vida_media:6,
+    inventario:20, aprovisionamientos:140,
     importe:0, plazo:5, tipo_int:5, colateral:0, tipo_col:'inmueble',
     equipo:'5', concentracion:'4', antiguedad:'5', ciclicidad:'4',
-    sector_comp:'quimica'
+    sector_comp:'quimica',
+    finalidad:'maquinaria',
+    rai:'ninguna', asnef:'no', impagos:'ninguno', demandas:'ninguna',
+    relacion_bancaria:'buena', anios_sin_incidencias:8
   },
   c: {
     ventas:80, ebitda:5, gastos_fin:6, imp_pagado:0.5, capex_mant:1.5,
     deuda_bruta:65, caja:4, activo_corriente:35, pasivo_corriente:38,
     clientes:30, proveedores:20, vida_media:3,
+    inventario:8, aprovisionamientos:68,
     importe:0, plazo:5, tipo_int:9, colateral:0, tipo_col:'maquinaria',
     equipo:'2', concentracion:'2', antiguedad:'2', ciclicidad:'2',
-    sector_comp:'construccion'
+    sector_comp:'construccion',
+    finalidad:'refinanciacion',
+    rai:'activas', asnef:'si', impagos:'recurrente', demandas:'menor',
+    relacion_bancaria:'deteriorada', anios_sin_incidencias:0
   }
 };
 
 function loadExample(name) {
   const ex = EXAMPLES[name];
   if (!ex) return;
-  const fields = ['ventas','ebitda','gastos_fin','imp_pagado','capex_mant',
+  const numFields = ['ventas','ebitda','gastos_fin','imp_pagado','capex_mant',
     'deuda_bruta','caja','activo_corriente','pasivo_corriente','clientes',
-    'proveedores','vida_media','importe','plazo','tipo_int','colateral'];
-  fields.forEach(f => {
+    'proveedores','vida_media','inventario','aprovisionamientos',
+    'importe','plazo','tipo_int','colateral','anios_sin_incidencias'];
+  numFields.forEach(f => {
     const el = document.getElementById(f);
-    if (el) el.value = ex[f];
+    if (el && ex[f] !== undefined) el.value = ex[f];
   });
-  ['tipo_col','equipo','concentracion','antiguedad','ciclicidad','sector_comp'].forEach(f => {
+  ['tipo_col','equipo','concentracion','antiguedad','ciclicidad','sector_comp',
+   'finalidad','rai','asnef','impagos','demandas','relacion_bancaria'].forEach(f => {
     const el = document.getElementById(f);
-    if (el) el.value = ex[f];
+    if (el && ex[f] !== undefined) el.value = ex[f];
   });
-  // Load colateral inventory rows if defined
   _colRows = (ex.colRows || []).map(r => ({ tipo: r.tipo, desc: r.desc, bruto: r.bruto }));
   renderColTable();
   update();
@@ -1581,7 +2008,7 @@ function loadExample(name) {
 function resetForm() {
   ['ventas','ebitda','gastos_fin','imp_pagado','capex_mant',
    'deuda_bruta','caja','activo_corriente','pasivo_corriente',
-   'clientes','proveedores'].forEach(id => {
+   'clientes','proveedores','inventario','aprovisionamientos'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -1591,16 +2018,24 @@ function resetForm() {
   document.getElementById('tipo_int').value = 6;
   document.getElementById('colateral').value = 0;
   document.getElementById('tipo_col').value = 'inmueble';
+  document.getElementById('finalidad').value = 'maquinaria';
+  document.getElementById('rai').value = 'ninguna';
+  document.getElementById('asnef').value = 'no';
+  document.getElementById('impagos').value = 'ninguno';
+  document.getElementById('demandas').value = 'ninguna';
+  document.getElementById('relacion_bancaria').value = 'buena';
+  document.getElementById('anios_sin_incidencias').value = 0;
   document.getElementById('equipo').value = 3;
   document.getElementById('concentracion').value = 3;
   document.getElementById('antiguedad').value = 3;
   document.getElementById('ciclicidad').value = 3;
   document.getElementById('sector_comp').value = 'metalurgia';
   // Clear charts
-  ['gauge-chart','bar-chart','radar-chart','sect-chart'].forEach(id => {
+  ['bar-chart','radar-chart','sect-chart','wc-cycle-chart'].forEach(id => {
     const el = document.getElementById(id);
     if (el) Plotly.purge(id);
   });
+  updateBadge(0, false);
   document.getElementById('ratio-grid').innerHTML = '';
   document.getElementById('risk-grid').innerHTML = '';
   document.getElementById('gating-banner').classList.remove('visible');
@@ -1612,6 +2047,12 @@ function resetForm() {
   document.getElementById('pricing-grid').innerHTML = '';
   document.getElementById('cov-extra').innerHTML = '';
   document.getElementById('det-tbody').innerHTML = '';
+  const wgrid = document.getElementById('wc-grid');
+  if (wgrid) wgrid.innerHTML = '';
+  const wsumm = document.getElementById('wc-summary');
+  if (wsumm) wsumm.innerHTML = '';
+  const chsec = document.getElementById('credit-hist-section');
+  if (chsec) chsec.style.display = 'none';
   // Reset colateral inventory
   _colRows = [];
   renderColTable();
@@ -1625,7 +2066,7 @@ function resetForm() {
 // ═══════════════════════════════════════════════════════════════
 // TABS
 // ═══════════════════════════════════════════════════════════════
-const TAB_IDS = ['scoring','nueva_deuda','comparables','covenants','colateral','detalle'];
+const TAB_IDS = ['scoring','wc','nueva_deuda','comparables','covenants','colateral','detalle'];
 
 function switchTab(name) {
   TAB_IDS.forEach(t => {
@@ -1867,6 +2308,12 @@ function exportPDF() {
 
 // ── Init ──
 window.addEventListener('load', () => {
+  // Report header
+  const now = new Date();
+  const rn = document.getElementById('report-number');
+  if (rn) rn.textContent = 'TO-' + now.getFullYear() + '-' + (Math.floor(1000 + Math.random() * 9000));
+  const rd = document.getElementById('report-date');
+  if (rd) rd.textContent = now.toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric' });
   // Load Tubacex as default example
   loadExample('tubacex');
 });

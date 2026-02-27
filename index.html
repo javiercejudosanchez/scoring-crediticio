@@ -385,6 +385,19 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
 .pdf-legal-text  { font-size: .75rem; color: var(--text-muted); line-height: 1.7; }
 .pdf-legal-footer { margin-top: auto; padding-top: 2rem; border-top: 1px solid var(--border);
                     font-size: .7rem; color: var(--text-muted); }
+/* ── PDF Ficha de operación ── */
+.pdf-ficha { margin: 1.5rem 0; display: flex; flex-direction: column; gap: .8rem; }
+.pdf-ficha-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.pdf-ficha-cell { padding: .9rem 1rem; background: var(--surface);
+                  border: 1px solid var(--border); border-radius: 6px; }
+.pdf-ficha-highlight { border-left: 3px solid var(--accent); }
+.pdf-ficha-label { font-size: .6rem; font-weight: 700; text-transform: uppercase;
+                   letter-spacing: .08em; color: var(--text-muted); margin-bottom: .3rem; }
+.pdf-ficha-value { font-size: .9rem; font-weight: 700; color: var(--text); }
+.pdf-ficha-score-val, .pdf-ficha-rating-val { font-size: 1.4rem; font-weight: 900; color: var(--accent); }
+.pdf-ficha-decision-val { font-size: .95rem; font-weight: 900; letter-spacing: .04em; }
+
+
 
 /* ── Score Badge SVG ── */
 .badge-wrap { display:flex; flex-direction:column; align-items:center; justify-content:center; height:220px; }
@@ -701,6 +714,38 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
   #col-waterfall  { height: 230px !important; min-height: 230px !important; }
   .badge-wrap { height: 180px !important; }
 
+
+  /* ── Blanket text / heading catches ── */
+  p, li, label { color: #333 !important; }
+  h1, h2, h3, h4, h5, h6 { color: #111 !important; }
+  span { color: inherit; }
+
+  /* ── Canvas / SVG ── */
+  canvas { background: #ffffff !important; }
+
+  /* ── Score badge circle fill ── */
+  #badge-arc-bg { stroke: #e0e0e0 !important; }
+  circle[stroke="#1f1f2e"] { stroke: #e0e0e0 !important; }
+
+  /* ── Badge SVG inner ring ── */
+  .badge-wrap circle { stroke: #e0e0e0 !important; }
+  .badge-wrap { background: white !important; }
+
+  /* ── Inline dark backgrounds on table cells ── */
+  td[style], th[style] { background-color: transparent !important; }
+  [style*="#18181f"], [style*="#111118"], [style*="#0a0a0f"] {
+    background-color: #f5f5f5 !important;
+  }
+
+  /* ── PDF Ficha ── */
+  .pdf-ficha-cell { background: #fafafa !important; border-color: #e0e0e0 !important;
+                    border-radius: 4px !important; }
+  .pdf-ficha-highlight { border-left-color: #c9a84c !important; }
+  .pdf-ficha-label { color: #999 !important; }
+  .pdf-ficha-value { color: #111 !important; }
+  .pdf-ficha-score-val, .pdf-ficha-rating-val { color: #c9a84c !important; }
+  .pdf-ficha-decision-val { color: #111 !important; }
+
   * { box-shadow: none !important; text-shadow: none !important; }
   .ratio-tile:hover { transform: none !important; }
 }
@@ -753,6 +798,39 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
     <div class="ph-sub">Credit Risk Platform · Resumen Ejecutivo</div>
   </div>
   <div class="pdf-page-title">Resumen Ejecutivo</div>
+
+  <!-- Ficha de la operación (data populated by exportPDF()) -->
+  <div class="pdf-ficha">
+    <div class="pdf-ficha-row">
+      <div class="pdf-ficha-cell">
+        <div class="pdf-ficha-label">Empresa analizada</div>
+        <div class="pdf-ficha-value" id="sum-empresa">—</div>
+      </div>
+      <div class="pdf-ficha-cell">
+        <div class="pdf-ficha-label">Sector comparable</div>
+        <div class="pdf-ficha-value" id="sum-sector">—</div>
+      </div>
+      <div class="pdf-ficha-cell">
+        <div class="pdf-ficha-label">Finalidad del crédito</div>
+        <div class="pdf-ficha-value" id="sum-finalidad">—</div>
+      </div>
+    </div>
+    <div class="pdf-ficha-row">
+      <div class="pdf-ficha-cell pdf-ficha-highlight">
+        <div class="pdf-ficha-label">Puntuación interna (0–100)</div>
+        <div class="pdf-ficha-value pdf-ficha-score-val" id="sum-score">—</div>
+      </div>
+      <div class="pdf-ficha-cell pdf-ficha-highlight">
+        <div class="pdf-ficha-label">Calificación S&amp;P equiv.</div>
+        <div class="pdf-ficha-value pdf-ficha-rating-val" id="sum-rating">—</div>
+      </div>
+      <div class="pdf-ficha-cell pdf-ficha-highlight">
+        <div class="pdf-ficha-label">Decisión de crédito</div>
+        <div class="pdf-ficha-value pdf-ficha-decision-val" id="sum-decision">—</div>
+      </div>
+    </div>
+  </div>
+
   <p class="pdf-page-text">
     TokenOriginate es una plataforma de análisis de riesgo crediticio especializada en PYMEs industriales.
     Mediante un modelo cuantitativo de 11 métricas ponderadas — que combina ratios de cobertura de deuda,
@@ -2665,15 +2743,43 @@ function exportPDF() {
   const emp = document.getElementById('empresa-nombre')?.value;
   const csub = document.getElementById('cover-empresa-sub');
   if (csub && emp) csub.textContent = emp + ' — Análisis de Riesgo Crediticio';
-  // Update summary empresa paragraph
+  // ── Populate ficha de operación ──
+  const scoreVal   = document.getElementById('badge-score')?.textContent  || '—';
+  const ratingVal  = document.getElementById('badge-rating')?.textContent || '—';
+  const decisionVal = document.getElementById('rec-decision')?.textContent || '—';
+  const sectorSel   = document.getElementById('sector_comp');
+  const sectorLabel = sectorSel ? sectorSel.options[sectorSel.selectedIndex]?.text : '—';
+  const finalidadSel = document.getElementById('finalidad');
+  const finalidadLabel = finalidadSel ? finalidadSel.options[finalidadSel.selectedIndex]?.text : '—';
+
+  const setText2 = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+  setText2('sum-empresa',   emp || '—');
+  setText2('sum-sector',    sectorLabel || '—');
+  setText2('sum-finalidad', finalidadLabel || '—');
+  setText2('sum-score',     scoreVal !== '—' ? scoreVal + ' / 100' : '—');
+  setText2('sum-rating',    ratingVal);
+  setText2('sum-decision',  decisionVal);
+
+  // Decision colour on ficha
+  const decEl = document.getElementById('sum-decision');
+  if (decEl) {
+    const d = decisionVal.toUpperCase();
+    decEl.style.color = d.includes('OPERAR') ? '#287d4e'
+                      : d.includes('ANALIZAR') ? '#9b6c0a'
+                      : d.includes('RECHAZAR') ? '#b52828'
+                      : '#111';
+  }
+
+  // Dynamic paragraph
   const sumEmp = document.getElementById('pdf-summary-empresa');
-  if (sumEmp && emp) {
-    const scoreEl = document.getElementById('badge-score');
-    const sc = scoreEl ? scoreEl.textContent : '—';
-    sumEmp.textContent = 'El presente informe analiza la operación de crédito de ' + emp +
-      ', con una puntuación de riesgo de ' + sc + '/100. Se evalúa la capacidad de servicio de la ' +
-      'deuda, el perfil de apalancamiento y los factores cualitativos del equipo directivo, ' +
-      'base de clientes y estabilidad sectorial.';
+  if (sumEmp) {
+    const empName = emp || 'la empresa analizada';
+    sumEmp.textContent = 'El presente informe analiza la capacidad crediticia de ' + empName +
+      ', empresa del sector ' + (sectorLabel || '—').toLowerCase() +
+      ', con una necesidad de financiación declarada para ' + (finalidadLabel || '—').toLowerCase() +
+      '. El modelo de scoring interno asigna una puntuación de ' + scoreVal + '/100' +
+      ' (equivalente a calificación ' + ratingVal + ' en escala S&P),' +
+      ' con decisión de crédito: ' + decisionVal + '.';
   }
 
   // Show cover + summary + all sections + legal + print headers
@@ -2748,7 +2854,7 @@ function exportPDF() {
   const frame = document.getElementById('print-frame');
   if (frame) frame.style.display = 'block';
 
-  // Delay so charts re-render before print dialog opens
+  // Delay so charts re-render before print dialog opens (500ms)
   setTimeout(() => {
     window.print();
 
@@ -2799,8 +2905,36 @@ function exportPDF() {
         try { Plotly.relayout(el, id === 'radar-chart' ? RADAR_DARK : DARK_LAY); } catch(e) {}
       });
     }, 1600);
-  }, 450);
+  }, 500);
 }
+
+
+// ── Auto-theme for direct Ctrl+P prints ──
+// Synchronously swaps CSS variables so @media print sees light values
+// (Charts won't re-render but backgrounds/text will be correct)
+window.addEventListener('beforeprint', () => {
+  const r = document.documentElement;
+  r.style.setProperty('--bg',         '#ffffff');
+  r.style.setProperty('--surface',    '#ffffff');
+  r.style.setProperty('--surface2',   '#f5f5f5');
+  r.style.setProperty('--border',     '#e0e0e0');
+  r.style.setProperty('--text',       '#111111');
+  r.style.setProperty('--text-muted', '#888888');
+  document.querySelectorAll('.pdf-page-header .ph-logo').forEach(el => {
+    el.style.color = '#111111';
+    el.querySelectorAll('span').forEach(s => s.style.color = '#c9a84c');
+  });
+});
+window.addEventListener('afterprint', () => {
+  const r = document.documentElement;
+  ['--bg','--surface','--surface2','--border','--text','--text-muted'].forEach(v =>
+    r.style.removeProperty(v)
+  );
+  document.querySelectorAll('.pdf-page-header .ph-logo').forEach(el => {
+    el.style.color = '';
+    el.querySelectorAll('span').forEach(s => s.style.color = '');
+  });
+});
 
 // ── Init ──
 window.addEventListener('load', () => {

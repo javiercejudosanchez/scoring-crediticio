@@ -2688,9 +2688,26 @@ function exportPDF() {
     if (!el) return;
     el.style.display  = 'flex';
     el.style.position = 'relative';
-    el.style.width    = '100vw';
+    el.style.width    = '100%';
     el.style.height   = '100vh';
   };
+
+  // ── Force CSS variables to white/light values BEFORE printing ──
+  // This overrides :root values via inline style on html element (highest specificity)
+  const root = document.documentElement;
+  root.style.setProperty('--bg',         '#ffffff');
+  root.style.setProperty('--surface',    '#ffffff');
+  root.style.setProperty('--surface2',   '#f5f5f5');
+  root.style.setProperty('--border',     '#e0e0e0');
+  root.style.setProperty('--text',       '#111111');
+  root.style.setProperty('--text-muted', '#888888');
+  // Fix hardcoded white text in ph-logo elements (not a variable)
+  document.querySelectorAll('.pdf-page-header .ph-logo').forEach(el => {
+    el.style.color = '#111111';
+    el.querySelectorAll('span').forEach(s => s.style.color = '#c9a84c');
+  });
+  document.querySelectorAll('.pdf-page-header .ph-sub').forEach(el => el.style.color = '#999');
+
   showPage(cover);
   showPage(summary);
   showPage(legal);
@@ -2747,6 +2764,16 @@ function exportPDF() {
       tabs.forEach(t => t.style.display = '');
       pHeaders.forEach(h => h.style.display = 'none');
       document.querySelectorAll('.section.active').forEach(s => s.style.display = 'block');
+      // ── Restore CSS variables and overridden text colors ──
+      const root = document.documentElement;
+      ['--bg','--surface','--surface2','--border','--text','--text-muted'].forEach(v =>
+        root.style.removeProperty(v)
+      );
+      document.querySelectorAll('.pdf-page-header .ph-logo').forEach(el => {
+        el.style.color = '';
+        el.querySelectorAll('span').forEach(s => s.style.color = '');
+      });
+      document.querySelectorAll('.pdf-page-header .ph-sub').forEach(el => el.style.color = '');
       // Restore dark chart theme
       const DARK_LAY = {
         paper_bgcolor: '#111118', plot_bgcolor: '#111118',

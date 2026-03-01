@@ -141,6 +141,37 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
 .dev-semaforo.amarillo { background:#c9a84c; }
 .dev-semaforo.rojo { background:#e05252; }
 
+/* ── BRP confirmation ── */
+.brp-pending-banner {
+  background: rgba(201,168,76,0.08);
+  border: 1px solid rgba(201,168,76,0.3);
+  border-left: 4px solid #c9a84c;
+  border-radius: 8px; padding: .75rem 1rem .75rem 1.2rem;
+  margin-top: 1rem; font-size: .83rem; color: #a0a0b8;
+}
+.brp-confirmed-banner {
+  background: rgba(76,175,125,0.08);
+  border: 1px solid rgba(76,175,125,0.3);
+  border-left: 4px solid #4caf7d;
+  border-radius: 8px; padding: .75rem 1rem .75rem 1.2rem;
+  margin-top: 1rem; font-size: .83rem; color: #a0a0b8;
+}
+.btn-confirm-brp {
+  background: #c9a84c; color: #0a0a0f;
+  border: none; border-radius: 8px;
+  padding: .55rem 1.4rem; font-size: .88rem; font-weight: 700;
+  cursor: pointer; margin-top: .8rem; display: block; width: 100%;
+  transition: background .15s;
+}
+.btn-confirm-brp:hover { background: #e8c97a; }
+.btn-reset-brp {
+  background: transparent; color: #55556a;
+  border: 1px solid #2a2a3e; border-radius: 6px;
+  padding: .3rem .8rem; font-size: .78rem; cursor: pointer;
+  margin-top: .5rem;
+}
+.btn-reset-brp:hover { color: #a0a0b8; border-color: #55556a; }
+
 /* ── KPI strip ── */
 .kpi-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px,1fr));
              gap: 1rem; margin-bottom: 1.4rem; }
@@ -1373,28 +1404,28 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
           <div style="display:flex;flex-direction:column;gap:.7rem;">
             <div>
               <label style="font-size:.8rem;color:#a0a0b8;display:block;margin-bottom:.2rem;">Ciclicidad de la demanda <span style="color:#55556a;">(1=muy cíclica, 6=defensiva)</span></label>
-              <select id="brp-ciclicidad" onchange="update()" style="width:100%;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.85rem;">
+              <select id="brp-ciclicidad" onchange="brpChanged()" style="width:100%;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.85rem;">
                 <option value="1">1 — Muy cíclica</option><option value="2">2 — Cíclica</option><option value="3" selected>3 — Moderada</option><option value="4">4 — Estable</option><option value="5">5 — Defensiva</option><option value="6">6 — Muy defensiva</option>
               </select>
               <textarea id="brp-just-ciclicidad" placeholder="Justificación..." rows="1" style="width:100%;background:#111118;color:#a0a0b8;border:1px solid #1f1f2e;border-radius:4px;padding:.3rem .5rem;font-size:.75rem;resize:vertical;margin-top:.2rem;"></textarea>
             </div>
             <div>
               <label style="font-size:.8rem;color:#a0a0b8;display:block;margin-bottom:.2rem;">Barreras de entrada <span style="color:#55556a;">(1=muy altas, 6=entrada libre)</span></label>
-              <select id="brp-barreras" onchange="update()" style="width:100%;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.85rem;">
+              <select id="brp-barreras" onchange="brpChanged()" style="width:100%;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.85rem;">
                 <option value="1">1 — Muy altas</option><option value="2">2 — Altas</option><option value="3" selected>3 — Medias</option><option value="4">4 — Bajas</option><option value="5">5 — Muy bajas</option><option value="6">6 — Entrada libre</option>
               </select>
               <textarea id="brp-just-barreras" placeholder="Justificación..." rows="1" style="width:100%;background:#111118;color:#a0a0b8;border:1px solid #1f1f2e;border-radius:4px;padding:.3rem .5rem;font-size:.75rem;resize:vertical;margin-top:.2rem;"></textarea>
             </div>
             <div>
               <label style="font-size:.8rem;color:#a0a0b8;display:block;margin-bottom:.2rem;">Intensidad competitiva <span style="color:#55556a;">(1=baja, 6=muy alta)</span></label>
-              <select id="brp-competitiva" onchange="update()" style="width:100%;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.85rem;">
+              <select id="brp-competitiva" onchange="brpChanged()" style="width:100%;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.85rem;">
                 <option value="1">1 — Muy baja</option><option value="2">2 — Baja</option><option value="3" selected>3 — Moderada</option><option value="4">4 — Alta</option><option value="5">5 — Muy alta</option><option value="6">6 — Extrema</option>
               </select>
               <textarea id="brp-just-competitiva" placeholder="Justificación..." rows="1" style="width:100%;background:#111118;color:#a0a0b8;border:1px solid #1f1f2e;border-radius:4px;padding:.3rem .5rem;font-size:.75rem;resize:vertical;margin-top:.2rem;"></textarea>
             </div>
             <div>
               <label style="font-size:.8rem;color:#a0a0b8;display:block;margin-bottom:.2rem;">Regulación <span style="color:#55556a;">(1=favorable, 6=muy adversa)</span></label>
-              <select id="brp-regulacion" onchange="update()" style="width:100%;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.85rem;">
+              <select id="brp-regulacion" onchange="brpChanged()" style="width:100%;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.85rem;">
                 <option value="1">1 — Muy favorable</option><option value="2">2 — Favorable</option><option value="3" selected>3 — Neutral</option><option value="4">4 — Restrictiva</option><option value="5">5 — Adversa</option><option value="6">6 — Muy adversa</option>
               </select>
               <textarea id="brp-just-regulacion" placeholder="Justificación..." rows="1" style="width:100%;background:#111118;color:#a0a0b8;border:1px solid #1f1f2e;border-radius:4px;padding:.3rem .5rem;font-size:.75rem;resize:vertical;margin-top:.2rem;"></textarea>
@@ -1407,28 +1438,28 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
           <div style="display:flex;flex-direction:column;gap:.7rem;">
             <div>
               <label style="font-size:.8rem;color:#a0a0b8;display:block;margin-bottom:.2rem;">Tamaño y escala <span style="color:#55556a;">(1=líder global, 6=pequeño/marginal)</span></label>
-              <select id="brp-tamano" onchange="update()" style="width:100%;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.85rem;">
+              <select id="brp-tamano" onchange="brpChanged()" style="width:100%;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.85rem;">
                 <option value="1">1 — Líder global</option><option value="2">2 — Grande</option><option value="3" selected>3 — Mediano</option><option value="4">4 — Pequeño-mediano</option><option value="5">5 — Pequeño</option><option value="6">6 — Marginal</option>
               </select>
               <textarea id="brp-just-tamano" placeholder="Justificación..." rows="1" style="width:100%;background:#111118;color:#a0a0b8;border:1px solid #1f1f2e;border-radius:4px;padding:.3rem .5rem;font-size:.75rem;resize:vertical;margin-top:.2rem;"></textarea>
             </div>
             <div>
               <label style="font-size:.8rem;color:#a0a0b8;display:block;margin-bottom:.2rem;">Diversificación <span style="color:#55556a;">(1=muy diversificada, 6=muy concentrada)</span></label>
-              <select id="brp-diversificacion" onchange="update()" style="width:100%;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.85rem;">
+              <select id="brp-diversificacion" onchange="brpChanged()" style="width:100%;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.85rem;">
                 <option value="1">1 — Muy diversificada</option><option value="2">2 — Diversificada</option><option value="3" selected>3 — Moderada</option><option value="4">4 — Concentrada</option><option value="5">5 — Muy concentrada</option><option value="6">6 — Sin diversif.</option>
               </select>
               <textarea id="brp-just-diversificacion" placeholder="Justificación..." rows="1" style="width:100%;background:#111118;color:#a0a0b8;border:1px solid #1f1f2e;border-radius:4px;padding:.3rem .5rem;font-size:.75rem;resize:vertical;margin-top:.2rem;"></textarea>
             </div>
             <div>
               <label style="font-size:.8rem;color:#a0a0b8;display:block;margin-bottom:.2rem;">Ventaja competitiva <span style="color:#55556a;">(1=muy fuerte, 6=sin ventaja)</span></label>
-              <select id="brp-ventaja" onchange="update()" style="width:100%;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.85rem;">
+              <select id="brp-ventaja" onchange="brpChanged()" style="width:100%;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.85rem;">
                 <option value="1">1 — Muy fuerte</option><option value="2">2 — Fuerte</option><option value="3" selected>3 — Moderada</option><option value="4">4 — Débil</option><option value="5">5 — Muy débil</option><option value="6">6 — Sin ventaja</option>
               </select>
               <textarea id="brp-just-ventaja" placeholder="Justificación..." rows="1" style="width:100%;background:#111118;color:#a0a0b8;border:1px solid #1f1f2e;border-radius:4px;padding:.3rem .5rem;font-size:.75rem;resize:vertical;margin-top:.2rem;"></textarea>
             </div>
             <div>
               <label style="font-size:.8rem;color:#a0a0b8;display:block;margin-bottom:.2rem;">Eficiencia operativa <span style="color:#55556a;">(1=márgenes top sector, 6=por debajo peers)</span></label>
-              <select id="brp-eficiencia" onchange="update()" style="width:100%;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.85rem;">
+              <select id="brp-eficiencia" onchange="brpChanged()" style="width:100%;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.85rem;">
                 <option value="1">1 — Top sector</option><option value="2">2 — Por encima media</option><option value="3" selected>3 — En línea sector</option><option value="4">4 — Por debajo media</option><option value="5">5 — Débil</option><option value="6">6 — Muy por debajo</option>
               </select>
               <textarea id="brp-just-eficiencia" placeholder="Justificación..." rows="1" style="width:100%;background:#111118;color:#a0a0b8;border:1px solid #1f1f2e;border-radius:4px;padding:.3rem .5rem;font-size:.75rem;resize:vertical;margin-top:.2rem;"></textarea>
@@ -1441,6 +1472,7 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
       <div class="card-title">Matriz BRP (6×6)</div>
       <div id="brp-matrix-container" style="overflow-x:auto;"></div>
       <div id="brp-result-banner" style="margin-top:1rem;"></div>
+      <div id="brp-confirm-area"></div>
     </div>
   </div><!-- /tab-brp -->
 
@@ -1824,6 +1856,23 @@ function getTipoEmpresa() { return document.getElementById('tipo-empresa')?.valu
 function isDeveloper()     { return getTipoEmpresa() === 'developer'; }
 function getPESOS()        { return isDeveloper() ? PESOS_DEVELOPER : PESOS; }
 
+let _brpConfirmed = false;
+
+function brpChanged() {
+  _brpConfirmed = false;
+  update();
+}
+
+function confirmBRP() {
+  _brpConfirmed = true;
+  update();
+}
+
+function resetBRP() {
+  _brpConfirmed = false;
+  update();
+}
+
 function calcBRP() {
   const get = id => parseInt(document.getElementById(id)?.value) || 3;
   const ir = Math.round((get('brp-ciclicidad')+get('brp-barreras')+
@@ -1862,8 +1911,30 @@ function renderBRPMatrix(ir, cp, brp) {
     const adjStr = BRP_ADJUSTMENTS[brp] >= 0 ? '+'+BRP_ADJUSTMENTS[brp] : String(BRP_ADJUSTMENTS[brp]);
     banner.style.cssText = `background:${brpColors[brp]}22;border:1px solid ${brpColors[brp]};border-radius:8px;padding:.8rem 1.2rem;margin-top:1rem;`;
     banner.innerHTML = `<strong style="color:${brpColors[brp]};">BRP ${brp} — ${BRP_LABELS[brp]}</strong>
-      <span style="color:#a0a0b8;margin-left:1rem;">Ajuste sobre score: <strong style="color:#f0f0f5;">${adjStr} pts</strong></span>
+      <span style="color:#a0a0b8;margin-left:1rem;">Ajuste calculado: <strong style="color:#f0f0f5;">${adjStr} pts</strong></span>
       <span style="color:#55556a;margin-left:1rem;font-size:.8rem;">IR=${ir} | CP=${cp}</span>`;
+  }
+
+  // Confirm area
+  const confirmArea = document.getElementById('brp-confirm-area');
+  if (confirmArea) {
+    const adjStr = BRP_ADJUSTMENTS[brp] >= 0 ? '+'+BRP_ADJUSTMENTS[brp] : String(BRP_ADJUSTMENTS[brp]);
+    if (_brpConfirmed) {
+      confirmArea.innerHTML = `
+        <div class="brp-confirmed-banner">
+          ✅ <strong style="color:#4caf7d;">BRP confirmado y aplicado al score.</strong>
+          Ajuste activo: <strong style="color:#f0f0f5;">${adjStr} pts</strong>.
+          <br><button class="btn-reset-brp" onclick="resetBRP()">↩ Desconfirmar / modificar valores</button>
+        </div>`;
+    } else {
+      confirmArea.innerHTML = `
+        <div class="brp-pending-banner">
+          ⚠️ <strong style="color:#c9a84c;">BRP pendiente de confirmación.</strong>
+          El ajuste de <strong style="color:#f0f0f5;">${adjStr} pts</strong> no está aplicado al score
+          hasta que el analista confirme los valores.
+        </div>
+        <button class="btn-confirm-brp" onclick="confirmBRP()">✅ Confirmar BRP y aplicar al score</button>`;
+    }
   }
 }
 
@@ -2373,7 +2444,8 @@ function update() {
   const histPenalty     = calcHistorialPenalty(d);
   const scoreConPenalty = Math.max(0, Math.min(100, baseScore + histPenalty.penalty));
   const brpResult       = calcBRP();
-  const scoreConBRP     = Math.max(0, Math.min(100, scoreConPenalty + brpResult.adj));
+  const effectiveBrpAdj = _brpConfirmed ? brpResult.adj : 0;
+  const scoreConBRP     = Math.max(0, Math.min(100, scoreConPenalty + effectiveBrpAdj));
   const country         = document.getElementById('pais-domicilio')?.value || '';
   const preRating       = spRating(scoreConBRP);
   const sovereign       = calcSovereignCeiling(preRating.ordinal, country);
@@ -2892,9 +2964,12 @@ function renderDetalle(res, score, baseScore, histPenalty) {
   const finalScore = Math.round(score);
   const finalColor = finalScore >= 70 ? '#22c55e' : finalScore >= 40 ? '#f59e0b' : '#ef4444';
   const rating = spRating(finalScore);
-  let totalHtml = `<span style="font-size:1.1rem;color:${finalColor};">${finalScore} / 100</span> <span style="font-size:.85rem;color:${finalColor};font-weight:700;">(${rating.grade})</span>`;
+  let totalHtml = `<span style="font-size:1.1rem;color:${finalColor};">${finalScore} / 100</span> <span style="font-size:.85rem;color:${finalColor};font-weight:700;">(${rating.rating})</span>`;
   if (histPenalty && histPenalty.penalty !== 0) {
     totalHtml += `<div style="font-size:.75rem;color:#55556a;margin-top:.2rem;">Score cuantitativo: ${Math.round(baseScore||finalScore)} → ajuste historial: ${histPenalty.penalty>0?'+':''}${histPenalty.penalty} pts</div>`;
+  }
+  if (!_brpConfirmed) {
+    totalHtml += `<div style="font-size:.75rem;color:#c9a84c;margin-top:.3rem;">⚠ BRP pendiente de análisis (ajuste no aplicado) — ir a pestaña BRP para confirmar</div>`;
   }
   setText('det-total', totalHtml);
   const semC = finalScore >= 70 ? 'badge-v' : finalScore >= 40 ? 'badge-a' : 'badge-r';
@@ -2995,6 +3070,7 @@ const EXAMPLES = {
 function loadExample(name) {
   const ex = EXAMPLES[name];
   if (!ex) return;
+  _brpConfirmed = false;  // reset BRP confirmation on new example load
   const numFields = ['ventas','ebitda','gastos_fin','imp_pagado','capex_mant',
     'deuda_bruta','caja','activo_corriente','pasivo_corriente','clientes',
     'proveedores','vida_media','inventario','aprovisionamientos',
@@ -3353,7 +3429,12 @@ function exportPDF() {
     const brp = _currentData.brpResult;
     const sov = _currentData.sovereign;
     const fr  = _currentData.finalRating;
-    if (brp) setText2('sum-brp', `BRP ${brp.brp} — ${brp.label} (ajuste ${brp.adj >= 0 ? '+' : ''}${brp.adj} pts)`);
+    if (brp) {
+      const brpTxt = _brpConfirmed
+        ? `BRP ${brp.brp} — ${brp.label} (ajuste ${brp.adj >= 0 ? '+' : ''}${brp.adj} pts aplicado)`
+        : `BRP ${brp.brp} — ${brp.label} (Pendiente de análisis — ajuste no aplicado)`;
+      setText2('sum-brp', brpTxt);
+    }
     if (sov && fr) {
       let sovTxt = fr.rating;
       if (sov.capped) sovTxt += ` (cap soberano)`;

@@ -111,6 +111,36 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
                            letter-spacing: 1px; color: var(--rojo); margin-bottom: .4rem; }
 .gating-banner .g-text  { font-size: .95rem; font-weight: 700; color: var(--text); line-height: 1.5; }
 
+.dev-mode-banner {
+  background: rgba(76,175,125,0.07);
+  border: 1px solid rgba(76,175,125,0.25);
+  border-left: 4px solid #4caf7d;
+  border-radius: 8px;
+  padding: .75rem 1rem .75rem 1.2rem;
+  margin-bottom: 1.2rem;
+  font-size: .82rem;
+  color: #a0a0b8;
+  display: none;
+}
+.dev-mode-banner.visible { display: block; }
+.dev-analysis-card {
+  background: #13131a; border: 1px solid #1f1f2e;
+  border-radius: 12px; padding: 1.2rem 1.4rem; margin-top: 1.4rem;
+}
+.dev-section-title {
+  font-size: .75rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: #4caf7d; margin-bottom: 1rem;
+}
+.dev-metric-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: .4rem 0; border-bottom: 1px solid #1a1a27; font-size: .85rem;
+}
+.dev-metric-row:last-child { border-bottom: none; }
+.dev-semaforo { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:.5rem; }
+.dev-semaforo.verde { background:#4caf7d; }
+.dev-semaforo.amarillo { background:#c9a84c; }
+.dev-semaforo.rojo { background:#e05252; }
+
 /* ── KPI strip ── */
 .kpi-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px,1fr));
              gap: 1rem; margin-bottom: 1.4rem; }
@@ -303,6 +333,7 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
 
 /* ── Animations ── */
 @keyframes fadeIn { from { opacity:0; transform: translateY(-8px); } to { opacity:1; transform:none; } }
+@keyframes jsonBanner { 0%{opacity:0;transform:translateY(-10px)} 10%{opacity:1;transform:none} 80%{opacity:1} 100%{opacity:0} }
 
 /* ── PDF / Print button ── */
 .pdf-btn { width: 100%; margin-top: .4rem; background: transparent;
@@ -844,6 +875,7 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
     y estabilidad sectorial. Los resultados se presentan con el score final, la recomendación de crédito
     y los principales factores de riesgo identificados.
   </p>
+  <div id="pdf-dev-section" style="display:none;margin-top:1.2rem;"></div>
 </div>
 
 <!-- ═══════════════════════════ PDF LEGAL PAGE ═══════════════════════════ -->
@@ -899,9 +931,25 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
   <!-- Example buttons -->
   <div class="sb-sec">Cargar ejemplo</div>
   <div class="ex-btns">
+    <button class="ex-btn" onclick="loadExample('viscofan')">Viscofan</button>
+    <button class="ex-btn" onclick="loadExample('grenergy')">Grenergy</button>
     <button class="ex-btn" onclick="loadExample('tubacex')">Tubacex</button>
     <button class="ex-btn" onclick="loadExample('aa')">Perfil AA</button>
     <button class="ex-btn" onclick="loadExample('c')">Perfil C</button>
+  </div>
+  <hr class="sb-sep">
+
+  <!-- Tipo de empresa -->
+  <div class="sb-sec">Tipo de Empresa</div>
+  <div class="field">
+    <label>Perfil de empresa</label>
+    <select id="tipo-empresa" onchange="update()"
+      style="width:100%;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.82rem;">
+      <option value="operativa">Empresa operativa estándar</option>
+      <option value="developer">Project developer / Activos en construcción</option>
+      <option value="holding">Holding / Empresa de inversión</option>
+      <option value="startup">Startup / Pre-revenue</option>
+    </select>
   </div>
   <hr class="sb-sep">
 
@@ -911,7 +959,27 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
   <div class="field"><label>EBITDA reportado</label><input type="number" id="ebitda" step="0.1" value="15"></div>
   <div class="field"><label>Gastos financieros</label><input type="number" id="gastos_fin" step="0.1" value="2.5"></div>
   <div class="field"><label>Impuesto pagado (caja)</label><input type="number" id="imp_pagado" step="0.1" value="2"></div>
-  <div class="field"><label>Capex mantenimiento</label><input type="number" id="capex_mant" step="0.1" value="2"></div>
+  <div class="field"><label>Capex mantenimiento</label><input type="number" id="capex_mant" step="0.1" value="2" oninput="update()"></div>
+
+  <!-- Campos Project Developer — ocultos por defecto -->
+  <div id="dev-fields-section" style="display:none;">
+    <hr class="sb-sep">
+    <div class="sb-sec" style="color:#4caf7d;">⚙ Project Developer</div>
+    <div class="field"><label>CFADS activos operativos (M€)</label>
+      <input type="number" id="cfads-operativo" step="0.1" value="0" oninput="update()"></div>
+    <div class="field"><label>CFADS proyectado al completar (M€)</label>
+      <input type="number" id="cfads-proyectado" step="0.1" value="0" oninput="update()"></div>
+    <div class="field"><label>Capex comprometido pendiente (M€)</label>
+      <input type="number" id="capex-comprometido" step="0.1" value="0" oninput="update()"></div>
+    <div class="field"><label>Líneas de crédito disponibles (M€)</label>
+      <input type="number" id="lineas-credito" step="0.1" value="0" oninput="update()"></div>
+    <div class="field"><label>MW operativos</label>
+      <input type="number" id="mw-operativos" step="1" value="0" oninput="update()"></div>
+    <div class="field"><label>MW en construcción</label>
+      <input type="number" id="mw-construccion" step="1" value="0" oninput="update()"></div>
+    <div class="field"><label>MW en pipeline (permisos)</label>
+      <input type="number" id="mw-pipeline" step="1" value="0" oninput="update()"></div>
+  </div>
 
   <hr class="sb-sep">
   <!-- Balance -->
@@ -1119,6 +1187,7 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
   <!-- Tabs -->
   <div class="tabs">
     <div class="tab active"   onclick="switchTab('scoring')">Scoring</div>
+    <div class="tab inactive" onclick="switchTab('brp')">Riesgo Negocio</div>
     <div class="tab inactive" onclick="switchTab('wc')">Working Capital</div>
     <div class="tab inactive" onclick="switchTab('nueva_deuda')">Nueva Deuda</div>
     <div class="tab inactive" onclick="switchTab('comparables')">Comparables</div>
@@ -1129,6 +1198,13 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
 
   <!-- ── TAB: SCORING ── -->
   <div id="tab-scoring" class="section active" data-title="Scoring de Riesgo Crediticio">
+
+    <!-- Dev mode banner -->
+    <div id="dev-mode-banner" class="dev-mode-banner">
+      ⚙️ <strong>Modo Project Developer activo.</strong>
+      El scoring usa metodología ajustada. DSCR desdoblado en operacional y constructivo.
+      Pesos recalibrados. Gating estándar desactivado (DSCR consolidado distorsionado por project finance).
+    </div>
 
     <!-- Gating banner -->
     <div id="gating-banner" class="gating-banner">
@@ -1211,6 +1287,62 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
       <div id="credit-hist-content"></div>
     </div>
 
+    <!-- Techo Soberano -->
+    <div class="card" style="margin-bottom:1.4rem;">
+      <div class="card-title">País de Domicilio — Techo Soberano</div>
+      <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+        <div>
+          <label style="font-size:.8rem;color:#a0a0b8;display:block;margin-bottom:.3rem;">País de domicilio fiscal</label>
+          <select id="pais-domicilio" onchange="update()" style="background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.35rem .7rem;font-size:.85rem;min-width:180px;">
+            <option value="Internacional">Internacional / Sin techo</option>
+            <option value="España" selected>España (BBB+)</option>
+            <option value="Alemania">Alemania (AAA)</option>
+            <option value="Francia">Francia (AA)</option>
+            <option value="Italia">Italia (BBB)</option>
+            <option value="Portugal">Portugal (BBB+)</option>
+            <option value="EEUU">EEUU (AA+)</option>
+            <option value="Reino Unido">Reino Unido (AA)</option>
+            <option value="Países Bajos">Países Bajos (AAA)</option>
+            <option value="Suecia">Suecia (AAA)</option>
+            <option value="Noruega">Noruega (AAA)</option>
+            <option value="Dinamarca">Dinamarca (AAA)</option>
+            <option value="Finlandia">Finlandia (AAA)</option>
+            <option value="Bélgica">Bélgica (AA-)</option>
+            <option value="Austria">Austria (AAA)</option>
+            <option value="Suiza">Suiza (AAA)</option>
+            <option value="Polonia">Polonia (A)</option>
+            <option value="Rep. Checa">Rep. Checa (A+)</option>
+            <option value="Hungría">Hungría (BBB)</option>
+            <option value="Rumanía">Rumanía (BBB-)</option>
+            <option value="Grecia">Grecia (BBB+)</option>
+            <option value="México">México (BBB-)</option>
+            <option value="Brasil">Brasil (BB+)</option>
+            <option value="Argentina">Argentina (CCC)</option>
+            <option value="Chile">Chile (A+)</option>
+            <option value="Colombia">Colombia (BB+)</option>
+            <option value="Perú">Perú (BBB+)</option>
+            <option value="China">China (A)</option>
+            <option value="India">India (BBB-)</option>
+            <option value="Japón">Japón (A+)</option>
+            <option value="Corea del Sur">Corea del Sur (A+)</option>
+            <option value="Australia">Australia (AAA)</option>
+            <option value="Canadá">Canadá (AAA)</option>
+            <option value="Emiratos Árabes">Emiratos Árabes (AA)</option>
+            <option value="Arabia Saudita">Arabia Saudita (A+)</option>
+            <option value="Sudáfrica">Sudáfrica (BB+)</option>
+            <option value="Turquía">Turquía (BB+)</option>
+            <option value="Rusia">Rusia (SD)</option>
+            <option value="Ucrania">Ucrania (CCC)</option>
+          </select>
+        </div>
+        <div id="sovereign-warning" style="flex:1;min-width:200px;font-size:.85rem;color:#c9a84c;padding:.4rem .8rem;border-radius:6px;"></div>
+      </div>
+      <div id="sovereign-justificacion-wrap" style="display:none;margin-top:.8rem;">
+        <label style="font-size:.8rem;color:#a0a0b8;display:block;margin-bottom:.3rem;">Justificación de desvinculación soberana</label>
+        <textarea id="sovereign-justificacion" rows="2" placeholder="Ej: Flujos en divisa fuerte, activos extraterritoriales, estructura holding..." style="width:100%;background:#111118;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.4rem .7rem;font-size:.82rem;resize:vertical;"></textarea>
+      </div>
+    </div>
+
     <!-- Ratio tiles -->
     <div class="ratio-grid" id="ratio-grid"></div>
 
@@ -1224,7 +1356,93 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
     <div class="card-title" style="margin-bottom:.8rem;">Top 3 Factores de Riesgo</div>
     <div class="risk-grid" id="risk-grid"></div>
 
+    <div id="dev-analysis-section" style="display:none;"></div>
+
   </div><!-- /tab-scoring -->
+
+  <!-- ── TAB: BRP ── -->
+  <div id="tab-brp" class="section" data-title="Business Risk Profile">
+    <div class="card" style="margin-bottom:1.4rem;">
+      <div class="card-title">Business Risk Profile — Metodología S&amp;P</div>
+      <button onclick="cargarBRPPropuesta()" style="background:#c9a84c;color:#0a0a0f;border:none;border-radius:8px;padding:.4rem 1rem;font-size:.82rem;font-weight:700;cursor:pointer;margin-bottom:1rem;">📋 Cargar propuesta del Research</button>
+      <div id="brp-empresa-info" style="display:none;"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;">
+        <!-- Riesgo de Industria -->
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:#c9a84c;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.8rem;">Riesgo de Industria</div>
+          <div style="display:flex;flex-direction:column;gap:.7rem;">
+            <div>
+              <label style="font-size:.8rem;color:#a0a0b8;display:block;margin-bottom:.2rem;">Ciclicidad de la demanda <span style="color:#55556a;">(1=muy cíclica, 6=defensiva)</span></label>
+              <select id="brp-ciclicidad" onchange="update()" style="width:100%;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.85rem;">
+                <option value="1">1 — Muy cíclica</option><option value="2">2 — Cíclica</option><option value="3" selected>3 — Moderada</option><option value="4">4 — Estable</option><option value="5">5 — Defensiva</option><option value="6">6 — Muy defensiva</option>
+              </select>
+              <textarea id="brp-just-ciclicidad" placeholder="Justificación..." rows="1" style="width:100%;background:#111118;color:#a0a0b8;border:1px solid #1f1f2e;border-radius:4px;padding:.3rem .5rem;font-size:.75rem;resize:vertical;margin-top:.2rem;"></textarea>
+            </div>
+            <div>
+              <label style="font-size:.8rem;color:#a0a0b8;display:block;margin-bottom:.2rem;">Barreras de entrada <span style="color:#55556a;">(1=muy altas, 6=entrada libre)</span></label>
+              <select id="brp-barreras" onchange="update()" style="width:100%;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.85rem;">
+                <option value="1">1 — Muy altas</option><option value="2">2 — Altas</option><option value="3" selected>3 — Medias</option><option value="4">4 — Bajas</option><option value="5">5 — Muy bajas</option><option value="6">6 — Entrada libre</option>
+              </select>
+              <textarea id="brp-just-barreras" placeholder="Justificación..." rows="1" style="width:100%;background:#111118;color:#a0a0b8;border:1px solid #1f1f2e;border-radius:4px;padding:.3rem .5rem;font-size:.75rem;resize:vertical;margin-top:.2rem;"></textarea>
+            </div>
+            <div>
+              <label style="font-size:.8rem;color:#a0a0b8;display:block;margin-bottom:.2rem;">Intensidad competitiva <span style="color:#55556a;">(1=baja, 6=muy alta)</span></label>
+              <select id="brp-competitiva" onchange="update()" style="width:100%;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.85rem;">
+                <option value="1">1 — Muy baja</option><option value="2">2 — Baja</option><option value="3" selected>3 — Moderada</option><option value="4">4 — Alta</option><option value="5">5 — Muy alta</option><option value="6">6 — Extrema</option>
+              </select>
+              <textarea id="brp-just-competitiva" placeholder="Justificación..." rows="1" style="width:100%;background:#111118;color:#a0a0b8;border:1px solid #1f1f2e;border-radius:4px;padding:.3rem .5rem;font-size:.75rem;resize:vertical;margin-top:.2rem;"></textarea>
+            </div>
+            <div>
+              <label style="font-size:.8rem;color:#a0a0b8;display:block;margin-bottom:.2rem;">Regulación <span style="color:#55556a;">(1=favorable, 6=muy adversa)</span></label>
+              <select id="brp-regulacion" onchange="update()" style="width:100%;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.85rem;">
+                <option value="1">1 — Muy favorable</option><option value="2">2 — Favorable</option><option value="3" selected>3 — Neutral</option><option value="4">4 — Restrictiva</option><option value="5">5 — Adversa</option><option value="6">6 — Muy adversa</option>
+              </select>
+              <textarea id="brp-just-regulacion" placeholder="Justificación..." rows="1" style="width:100%;background:#111118;color:#a0a0b8;border:1px solid #1f1f2e;border-radius:4px;padding:.3rem .5rem;font-size:.75rem;resize:vertical;margin-top:.2rem;"></textarea>
+            </div>
+          </div>
+        </div>
+        <!-- Posición Competitiva -->
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:#4caf7d;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.8rem;">Posición Competitiva</div>
+          <div style="display:flex;flex-direction:column;gap:.7rem;">
+            <div>
+              <label style="font-size:.8rem;color:#a0a0b8;display:block;margin-bottom:.2rem;">Tamaño y escala <span style="color:#55556a;">(1=líder global, 6=pequeño/marginal)</span></label>
+              <select id="brp-tamano" onchange="update()" style="width:100%;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.85rem;">
+                <option value="1">1 — Líder global</option><option value="2">2 — Grande</option><option value="3" selected>3 — Mediano</option><option value="4">4 — Pequeño-mediano</option><option value="5">5 — Pequeño</option><option value="6">6 — Marginal</option>
+              </select>
+              <textarea id="brp-just-tamano" placeholder="Justificación..." rows="1" style="width:100%;background:#111118;color:#a0a0b8;border:1px solid #1f1f2e;border-radius:4px;padding:.3rem .5rem;font-size:.75rem;resize:vertical;margin-top:.2rem;"></textarea>
+            </div>
+            <div>
+              <label style="font-size:.8rem;color:#a0a0b8;display:block;margin-bottom:.2rem;">Diversificación <span style="color:#55556a;">(1=muy diversificada, 6=muy concentrada)</span></label>
+              <select id="brp-diversificacion" onchange="update()" style="width:100%;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.85rem;">
+                <option value="1">1 — Muy diversificada</option><option value="2">2 — Diversificada</option><option value="3" selected>3 — Moderada</option><option value="4">4 — Concentrada</option><option value="5">5 — Muy concentrada</option><option value="6">6 — Sin diversif.</option>
+              </select>
+              <textarea id="brp-just-diversificacion" placeholder="Justificación..." rows="1" style="width:100%;background:#111118;color:#a0a0b8;border:1px solid #1f1f2e;border-radius:4px;padding:.3rem .5rem;font-size:.75rem;resize:vertical;margin-top:.2rem;"></textarea>
+            </div>
+            <div>
+              <label style="font-size:.8rem;color:#a0a0b8;display:block;margin-bottom:.2rem;">Ventaja competitiva <span style="color:#55556a;">(1=muy fuerte, 6=sin ventaja)</span></label>
+              <select id="brp-ventaja" onchange="update()" style="width:100%;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.85rem;">
+                <option value="1">1 — Muy fuerte</option><option value="2">2 — Fuerte</option><option value="3" selected>3 — Moderada</option><option value="4">4 — Débil</option><option value="5">5 — Muy débil</option><option value="6">6 — Sin ventaja</option>
+              </select>
+              <textarea id="brp-just-ventaja" placeholder="Justificación..." rows="1" style="width:100%;background:#111118;color:#a0a0b8;border:1px solid #1f1f2e;border-radius:4px;padding:.3rem .5rem;font-size:.75rem;resize:vertical;margin-top:.2rem;"></textarea>
+            </div>
+            <div>
+              <label style="font-size:.8rem;color:#a0a0b8;display:block;margin-bottom:.2rem;">Eficiencia operativa <span style="color:#55556a;">(1=márgenes top sector, 6=por debajo peers)</span></label>
+              <select id="brp-eficiencia" onchange="update()" style="width:100%;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.85rem;">
+                <option value="1">1 — Top sector</option><option value="2">2 — Por encima media</option><option value="3" selected>3 — En línea sector</option><option value="4">4 — Por debajo media</option><option value="5">5 — Débil</option><option value="6">6 — Muy por debajo</option>
+              </select>
+              <textarea id="brp-just-eficiencia" placeholder="Justificación..." rows="1" style="width:100%;background:#111118;color:#a0a0b8;border:1px solid #1f1f2e;border-radius:4px;padding:.3rem .5rem;font-size:.75rem;resize:vertical;margin-top:.2rem;"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Matriz BRP (6×6)</div>
+      <div id="brp-matrix-container" style="overflow-x:auto;"></div>
+      <div id="brp-result-banner" style="margin-top:1rem;"></div>
+    </div>
+  </div><!-- /tab-brp -->
 
   <!-- ── TAB: WORKING CAPITAL ── -->
   <div id="tab-wc" class="section" data-title="Análisis Capital Circulante">
@@ -1411,18 +1629,40 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
 // ── S&P Rating + Badge ──
 const CIRC = 2 * Math.PI * 72; // ≈ 452.4
 
+const RATING_SCALE = [
+  { min:97, max:100, rating:"AAA",  ordinal:21, color:"#1a7a4a", desc:"Calidad máxima" },
+  { min:93, max:96,  rating:"AA+",  ordinal:20, color:"#1a7a4a", desc:"Muy alta calidad" },
+  { min:89, max:92,  rating:"AA",   ordinal:19, color:"#2d9e63", desc:"Muy alta calidad" },
+  { min:85, max:88,  rating:"AA-",  ordinal:18, color:"#2d9e63", desc:"Alta calidad" },
+  { min:80, max:84,  rating:"A+",   ordinal:17, color:"#4caf7d", desc:"Alta calidad" },
+  { min:76, max:79,  rating:"A",    ordinal:16, color:"#4caf7d", desc:"Alta calidad" },
+  { min:72, max:75,  rating:"A-",   ordinal:15, color:"#4caf7d", desc:"Calidad media-alta" },
+  { min:67, max:71,  rating:"BBB+", ordinal:14, color:"#c9a84c", desc:"Grado de inversión" },
+  { min:63, max:66,  rating:"BBB",  ordinal:13, color:"#c9a84c", desc:"Grado de inversión" },
+  { min:59, max:62,  rating:"BBB-", ordinal:12, color:"#c9a84c", desc:"Grado de inversión" },
+  { min:54, max:58,  rating:"BB+",  ordinal:11, color:"#e07b39", desc:"Grado especulativo" },
+  { min:50, max:53,  rating:"BB",   ordinal:10, color:"#e07b39", desc:"Grado especulativo" },
+  { min:46, max:49,  rating:"BB-",  ordinal:9,  color:"#e07b39", desc:"Especulativo" },
+  { min:41, max:45,  rating:"B+",   ordinal:8,  color:"#e05252", desc:"Especulativo" },
+  { min:37, max:40,  rating:"B",    ordinal:7,  color:"#e05252", desc:"Especulativo alto riesgo" },
+  { min:33, max:36,  rating:"B-",   ordinal:6,  color:"#e05252", desc:"Alto riesgo" },
+  { min:28, max:32,  rating:"CCC+", ordinal:5,  color:"#c0392b", desc:"Riesgo muy alto" },
+  { min:23, max:27,  rating:"CCC",  ordinal:4,  color:"#c0392b", desc:"Riesgo muy alto" },
+  { min:18, max:22,  rating:"CCC-", ordinal:3,  color:"#c0392b", desc:"Riesgo extremo" },
+  { min:10, max:17,  rating:"CC",   ordinal:2,  color:"#8b0000", desc:"Near default" },
+  { min:0,  max:9,   rating:"D",    ordinal:1,  color:"#4a0000", desc:"En default / Impago" }
+];
+
 function spRating(score) {
-  if (score >= 90) return { grade:'AAA', desc:'Calidad máxima' };
-  if (score >= 80) return { grade:'AA',  desc:'Muy alta calidad' };
-  if (score >= 70) return { grade:'A',   desc:'Alta calidad' };
-  if (score >= 60) return { grade:'BBB', desc:'Grado inversión' };
-  if (score >= 50) return { grade:'BB',  desc:'Grado especulativo' };
-  if (score >= 40) return { grade:'B',   desc:'Especulativo' };
-  if (score >= 30) return { grade:'CCC', desc:'Alto riesgo' };
-  return { grade:'CC/D', desc:'En default / Impago' };
+  const s = Math.max(0, Math.min(100, score));
+  return RATING_SCALE.find(r => s >= r.min && s <= r.max) || RATING_SCALE[RATING_SCALE.length-1];
 }
 
-function updateBadge(score, gate) {
+function ratingFromOrdinal(ord) {
+  return RATING_SCALE.find(r => r.ordinal === Math.max(1, Math.min(21, ord))) || RATING_SCALE[RATING_SCALE.length-1];
+}
+
+function updateBadge(score, gate, finalRatingObj) {
   const arc      = document.getElementById('badge-arc');
   const scoreEl  = document.getElementById('badge-score');
   const ratingEl = document.getElementById('badge-rating');
@@ -1430,12 +1670,13 @@ function updateBadge(score, gate) {
   if (!arc) return;
   const s = Math.max(0, Math.min(100, score));
   const offset = CIRC * (1 - s / 100);
-  const color = gate ? '#e05252' : s >= 80 ? '#4caf7d' : s >= 60 ? '#c9a84c' : s >= 40 ? '#e07b39' : '#e05252';
+  const r = finalRatingObj || spRating(s);
+  const color = gate ? '#e05252' : r.color;
   arc.style.strokeDashoffset = offset;
   arc.style.stroke = color;
   if (scoreEl)  scoreEl.textContent  = Math.round(s);
-  if (ratingEl) { const r = spRating(s); ratingEl.textContent = r.grade; ratingEl.style.fill = color; }
-  if (descEl)   { const r = spRating(s); descEl.textContent = r.desc; }
+  if (ratingEl) { ratingEl.textContent = r.rating; ratingEl.style.fill = color; }
+  if (descEl)   { descEl.textContent = r.desc; }
 }
 
 // ── Spanish number parser ──
@@ -1578,6 +1819,106 @@ function calcHistorialPenalty(d) {
   return { penalty, reasons };
 }
 
+// ── Business Risk Profile ──
+function getTipoEmpresa() { return document.getElementById('tipo-empresa')?.value || 'operativa'; }
+function isDeveloper()     { return getTipoEmpresa() === 'developer'; }
+function getPESOS()        { return isDeveloper() ? PESOS_DEVELOPER : PESOS; }
+
+function calcBRP() {
+  const get = id => parseInt(document.getElementById(id)?.value) || 3;
+  const ir = Math.round((get('brp-ciclicidad')+get('brp-barreras')+
+                         get('brp-competitiva')+get('brp-regulacion'))/4);
+  const cp = Math.round((get('brp-tamano')+get('brp-diversificacion')+
+                         get('brp-ventaja')+get('brp-eficiencia'))/4);
+  const brpLevel = BRP_MATRIX[Math.max(0,Math.min(5,ir-1))][Math.max(0,Math.min(5,cp-1))];
+  return { ir, cp, brp: brpLevel, label: BRP_LABELS[brpLevel], adj: BRP_ADJUSTMENTS[brpLevel] };
+}
+
+function renderBRPMatrix(ir, cp, brp) {
+  const container = document.getElementById('brp-matrix-container');
+  if (!container) return;
+  const brpColors = {1:'#1a7a4a',2:'#2d9e63',3:'#4caf7d',4:'#c9a84c',5:'#e07b39',6:'#e05252'};
+  let html = '<table style="border-collapse:collapse;width:100%;font-size:.8rem;">';
+  html += '<thead><tr><th style="padding:.3rem .5rem;color:#55556a;text-align:left;">IR \\ CP</th>';
+  for (let c=1;c<=6;c++) html += `<th style="padding:.3rem .5rem;color:#55556a;text-align:center;">CP${c}</th>`;
+  html += '</tr></thead><tbody>';
+  for (let i=0;i<6;i++) {
+    html += `<tr><td style="padding:.3rem .5rem;color:#55556a;font-weight:600;">IR${i+1}</td>`;
+    for (let j=0;j<6;j++) {
+      const val = BRP_MATRIX[i][j];
+      const isActive = (i+1===ir && j+1===cp);
+      const bg = isActive ? brpColors[val] : '#18181f';
+      const border = isActive ? `3px solid ${brpColors[val]}` : '1px solid #1f1f2e';
+      const fw = isActive ? '900' : '400';
+      html += `<td style="padding:.3rem .5rem;text-align:center;background:${bg};border:${border};border-radius:4px;font-weight:${fw};color:${isActive?'#fff':brpColors[val]};">${BRP_LABELS[val]}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  container.innerHTML = html;
+
+  const banner = document.getElementById('brp-result-banner');
+  if (banner) {
+    const adjStr = BRP_ADJUSTMENTS[brp] >= 0 ? '+'+BRP_ADJUSTMENTS[brp] : String(BRP_ADJUSTMENTS[brp]);
+    banner.style.cssText = `background:${brpColors[brp]}22;border:1px solid ${brpColors[brp]};border-radius:8px;padding:.8rem 1.2rem;margin-top:1rem;`;
+    banner.innerHTML = `<strong style="color:${brpColors[brp]};">BRP ${brp} — ${BRP_LABELS[brp]}</strong>
+      <span style="color:#a0a0b8;margin-left:1rem;">Ajuste sobre score: <strong style="color:#f0f0f5;">${adjStr} pts</strong></span>
+      <span style="color:#55556a;margin-left:1rem;font-size:.8rem;">IR=${ir} | CP=${cp}</span>`;
+  }
+}
+
+async function cargarBRPPropuesta() {
+  try {
+    const res = await fetch('./brp_propuesta.json?_='+Date.now());
+    if (!res.ok) return;
+    const d = await res.json();
+    const ir = d.industry_risk || {};
+    const cp_data = d.competitive_position || {};
+    const fieldMap = {
+      'brp-ciclicidad': ir.ciclicidad, 'brp-barreras': ir.barreras_entrada,
+      'brp-competitiva': ir.intensidad_competitiva, 'brp-regulacion': ir.regulacion,
+      'brp-tamano': cp_data.tamano_escala, 'brp-diversificacion': cp_data.diversificacion,
+      'brp-ventaja': cp_data.ventaja_competitiva, 'brp-eficiencia': cp_data.eficiencia_operativa,
+    };
+    Object.entries(fieldMap).forEach(([id, val]) => {
+      if (val == null) return;
+      const el = document.getElementById(id);
+      if (el) el.value = String(val);
+    });
+    const justMap = {
+      'brp-just-ciclicidad': ir.ciclicidad_justificacion,
+      'brp-just-barreras': ir.barreras_justificacion,
+      'brp-just-competitiva': ir.competitiva_justificacion,
+      'brp-just-regulacion': ir.regulacion_justificacion,
+      'brp-just-tamano': cp_data.tamano_justificacion,
+      'brp-just-diversificacion': cp_data.diversificacion_justificacion,
+      'brp-just-ventaja': cp_data.ventaja_justificacion,
+      'brp-just-eficiencia': cp_data.eficiencia_justificacion,
+    };
+    Object.entries(justMap).forEach(([id, val]) => {
+      if (!val) return;
+      const el = document.getElementById(id);
+      if (el) el.value = val;
+    });
+    const info = document.getElementById('brp-empresa-info');
+    if (info && d.empresa) {
+      info.style.display = '';
+      info.innerHTML = `<div style="background:#18181f;border-radius:6px;padding:.6rem 1rem;margin:.8rem 0;font-size:.83rem;">
+        <strong style="color:#c9a84c;">${d.empresa}</strong>
+        <span style="color:#55556a;margin:0 .5rem;">|</span>Confianza: <strong style="color:#f0f0f5;">${d.confianza||'—'}</strong>
+        <span style="color:#55556a;margin:0 .5rem;">|</span>BRP calculado: <strong style="color:#f0f0f5;">${d.brp_etiqueta||'—'}</strong>
+        ${d.notas_analista ? `<div style="color:#a0a0b8;margin-top:.4rem;">${d.notas_analista}</div>` : ''}
+      </div>`;
+    }
+    update();
+    const b = document.createElement('div');
+    b.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:9999;background:#2d9e63;color:#fff;padding:.7rem 1.2rem;border-radius:8px;font-size:.875rem;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.35);pointer-events:none;';
+    b.textContent = '✅ BRP cargado desde research';
+    document.body.appendChild(b);
+    setTimeout(() => b.remove(), 4000);
+  } catch(e) { console.warn('brp_propuesta.json no encontrado'); }
+}
+
 function renderCreditHistory(d, histPenalty) {
   const sec = document.getElementById('credit-hist-section');
   const cnt = document.getElementById('credit-hist-content');
@@ -1673,6 +2014,73 @@ const PESOS = {
   ciclicidad:    { peso:  1.25,nombre: 'Estabilidad Sector',gating: false },
 };
 
+const PESOS_DEVELOPER = {
+  dscr_operacional:   { peso: 20.0, nombre: 'DSCR Operacional',   gating: false },
+  dscr_constructivo:  { peso: 15.0, nombre: 'DSCR Constructivo',  gating: false },
+  dscr:               { peso:  5.0, nombre: 'DSCR Consolidado',   gating: false },
+  deuda_ebitda:       { peso: 12.0, nombre: 'DFN / EBITDA',       gating: false },
+  llcr:               { peso: 12.0, nombre: 'LLCR',               gating: false },
+  ebitda_margin:      { peso:  6.0, nombre: 'Margen EBITDA',      gating: false },
+  ltv:                { peso:  8.0, nombre: 'LTV Colateral',       gating: false },
+  ffo_dfn:            { peso:  5.0, nombre: 'FFO / DFN',          gating: false },
+  dias_cobro:         { peso:  2.0, nombre: 'Días de Cobro',      gating: false },
+  ratio_construccion: { peso:  5.0, nombre: 'Ratio Construcción', gating: false },
+  madurez_mw:         { peso:  5.0, nombre: 'Madurez Cartera MW', gating: false },
+  equipo:             { peso:  1.25,nombre: 'Equipo Directivo',   gating: false },
+  concentracion:      { peso:  1.25,nombre: 'Diversif. Clientes', gating: false },
+  antiguedad:         { peso:  1.25,nombre: 'Antigüedad Negocio', gating: false },
+  ciclicidad:         { peso:  1.25,nombre: 'Estabilidad Sector', gating: false },
+  // 20+15+5+12+12+6+8+5+2+5+5+5 = 100 ✓
+};
+
+// ── Sovereign Ceiling ──
+const SOVEREIGN_RATINGS = {
+  "España": 14, "Alemania": 21, "Francia": 19, "Italia": 13,
+  "Portugal": 14, "EEUU": 20, "Reino Unido": 19, "Países Bajos": 21,
+  "Suecia": 21, "Noruega": 21, "Dinamarca": 21, "Finlandia": 21,
+  "Bélgica": 18, "Austria": 21, "Suiza": 21, "Polonia": 16,
+  "Rep. Checa": 17, "Hungría": 13, "Rumanía": 12, "Grecia": 14,
+  "México": 12, "Brasil": 11, "Argentina": 4, "Chile": 17,
+  "Colombia": 11, "Perú": 14, "China": 16, "India": 13,
+  "Japón": 17, "Corea del Sur": 17, "Australia": 21, "Canadá": 21,
+  "Emiratos Árabes": 19, "Arabia Saudita": 17, "Sudáfrica": 11,
+  "Turquía": 11, "Rusia": 1, "Ucrania": 4,
+};
+
+function calcSovereignCeiling(ratingOrdinal, country) {
+  if (!country || country === "Internacional" || !SOVEREIGN_RATINGS[country]) {
+    return { finalOrdinal: ratingOrdinal, capped: false, diff: 0, warning: null };
+  }
+  const sovOrd = SOVEREIGN_RATINGS[country];
+  const diff = ratingOrdinal - sovOrd;
+  if (diff <= 0) return { finalOrdinal: ratingOrdinal, capped: false, diff, warning: null };
+  if (diff === 1) return {
+    finalOrdinal: ratingOrdinal, capped: false, diff,
+    warning: `ℹ️ Rating ${ratingFromOrdinal(ratingOrdinal).rating} está 1 notch por encima del soberano (${ratingFromOrdinal(sovOrd).rating}). Requiere revisión.`
+  };
+  if (diff === 2) return {
+    finalOrdinal: ratingOrdinal, capped: false, diff,
+    warning: `⚠️ Rating ${diff} notches sobre soberano — requiere justificación y 3/4 criterios de desvinculación.`
+  };
+  const capOrd = sovOrd + 2;
+  return {
+    finalOrdinal: capOrd, capped: true, diff,
+    warning: `🚫 Techo soberano aplicado: cap en ${ratingFromOrdinal(capOrd).rating} (${ratingFromOrdinal(sovOrd).rating}+2 notches).`
+  };
+}
+
+// ── BRP Constants ──
+const BRP_MATRIX = [
+  [1,2,2,3,3,4],
+  [2,2,3,3,4,4],
+  [2,3,3,4,4,5],
+  [3,3,4,4,5,5],
+  [3,4,4,5,5,6],
+  [4,4,5,5,6,6],
+];
+const BRP_LABELS = {1:"Excelente",2:"Sólido",3:"Satisfactorio",4:"Justo",5:"Débil",6:"Muy débil"};
+const BRP_ADJUSTMENTS = {1:+8, 2:+4, 3:0, 4:-5, 5:-10, 6:-15};
+
 // Linear interpolation between breakpoints [[v0,p0],[v1,p1],...]
 function linScore(v, pts) {
   if (v <= pts[0][0]) return pts[0][1];
@@ -1702,6 +2110,10 @@ const SCORE_FNS = {
   concentracion: v => ({1:0,2:25,3:50,4:75,5:100})[Math.round(v)] || 0,
   antiguedad:    v => ({1:0,2:25,3:50,4:75,5:100})[Math.round(v)] || 0,
   ciclicidad:    v => ({1:0,2:25,3:50,4:75,5:100})[Math.round(v)] || 0,
+  dscr_operacional:   v => v === null ? 50 : linScore(v, [[0,0],[0.8,10],[1.0,30],[1.2,55],[1.5,80],[2.0,100]]),
+  dscr_constructivo:  v => v === null ? 50 : linScore(v, [[0,0],[1.0,10],[1.3,50],[1.5,75],[2.0,100]]),
+  ratio_construccion: v => v === null ? 50 : linScore(v, [[0,100],[1.5,80],[2.5,40],[4.0,0]]),
+  madurez_mw:         v => v === null ? 50 : linScore(v, [[0,0],[30,40],[60,80],[80,100]]),
 };
 
 // Sector benchmarks: {metric: {p25, med, p75}}
@@ -1756,21 +2168,41 @@ function calcRatios(d) {
   const ffo     = ebitda - d.gastos_fin - d.imp_pagado;
   const ffo_dfn = dfn > 0 ? (ffo / dfn * 100) : (ffo > 0 ? 100 : 10);
 
+  // Developer ratios — leídos directo del DOM
+  const cfads_op   = parseFloat(document.getElementById('cfads-operativo')?.value)   || 0;
+  const cfads_proj = parseFloat(document.getElementById('cfads-proyectado')?.value)  || 0;
+  const capex_comp = parseFloat(document.getElementById('capex-comprometido')?.value)|| 0;
+  const lineas     = parseFloat(document.getElementById('lineas-credito')?.value)    || 0;
+  const mw_op      = parseFloat(document.getElementById('mw-operativos')?.value)     || 0;
+  const mw_constr  = parseFloat(document.getElementById('mw-construccion')?.value)   || 0;
+  const mw_pipe    = parseFloat(document.getElementById('mw-pipeline')?.value)       || 0;
+
+  const dscr_operacional  = (cfads_op   > 0 && debt_svc > 0) ? cfads_op / debt_svc : null;
+  const full_ds2          = d.gastos_fin + (Math.max(dfn,0) + capex_comp) / vida_media;
+  const dscr_constructivo = (cfads_proj > 0 && full_ds2  > 0) ? cfads_proj / full_ds2 : null;
+  const liq_total         = d.caja + lineas;
+  const ratio_construccion= (capex_comp > 0 && liq_total > 0) ? capex_comp / liq_total : null;
+  const mw_activos        = mw_op + mw_constr;
+  const madurez_mw        = mw_activos > 0 ? (mw_op / mw_activos) * 100 : null;
+
   return {
     ebitda, ventas, dfn, ebitda_margin, deuda_ebitda,
     dias_cobro, dias_pago, liquidez, cfads, debt_svc,
     dscr, llcr, ltv, ffo, ffo_dfn, amort, vida_media, loanBase, n_loan, rate,
     tipo_col: d.tipo_col, colateral: d.colateral,
     importe: d.importe, plazo: d.plazo, tipo_int: d.tipo_int,
-    gastos_fin: d.gastos_fin
+    gastos_fin: d.gastos_fin,
+    dscr_operacional, dscr_constructivo, ratio_construccion, madurez_mw,
+    cfads_op, cfads_proj, capex_comp, lineas, mw_op, mw_constr, mw_pipe
   };
 }
 
-function calcScores(r) {
+function calcScores(r, pesos) {
+  pesos = pesos || PESOS;
   const res = {};
-  for (const [key, cfg] of Object.entries(PESOS)) {
-    const val = r[key] !== undefined ? r[key] : null;
-    const sc  = SCORE_FNS[key](val);
+  for (const [key, cfg] of Object.entries(pesos)) {
+    const val  = r[key] !== undefined ? r[key] : null;
+    const sc   = SCORE_FNS[key] ? SCORE_FNS[key](val) : 50;
     const contrib = sc * cfg.peso / 100;
     const color   = sc >= 80 ? 'verde' : sc >= 50 ? 'amarillo' : sc >= 20 ? 'naranja' : 'rojo';
     res[key] = { valor: val, puntuacion: sc, peso: cfg.peso, contrib, color,
@@ -1783,10 +2215,17 @@ function totalScore(res) {
   return Object.values(res).reduce((s, v) => s + v.contrib, 0);
 }
 
-function checkGating(res) {
-  // DSCR < 1.0x → score 0-19 → auto-reject (principal gate)
+function checkGating(res, r) {
+  if (isDeveloper()) {
+    // Solo rechaza si DSCR_op (cuando disponible) < 0.8x Y DFN/EBITDA > 5x — condición extrema
+    const dscrOpLow  = r && r.dscr_operacional !== null && r.dscr_operacional < 0.8;
+    const dfnVeryHigh= res.deuda_ebitda && res.deuda_ebitda.puntuacion < 25;
+    if (dscrOpLow && dfnVeryHigh)
+      return 'DSCR Operacional < 0.8x y DFN/EBITDA > 5.0x: niveles extremos incluso para project developer.';
+    return null;
+  }
+  // Modo estándar: sin cambios
   const dscrFails = res.dscr.puntuacion < 20;
-  // DFN/EBITDA > 4.0x → score < 40 → secondary gate
   const dfnFails  = res.deuda_ebitda.puntuacion < 40;
   if (dscrFails && dfnFails) return 'DSCR < 1.0x y DFN/EBITDA > 4.0x simultáneamente: doble incumplimiento de métricas de exclusión. Operación rechazada automáticamente independientemente del score total.';
   if (dscrFails) return 'DSCR < 1.0x: el CFADS no cubre el servicio de la deuda. Umbral mínimo absoluto incumplido. Operación rechazada automáticamente.';
@@ -1925,21 +2364,36 @@ function updateLtvIndicator() {
 function update() {
   const d = readInputs();
   const r = calcRatios(d);
-
   r.equipo = d.equipo; r.concentracion = d.concentracion;
   r.antiguedad = d.antiguedad; r.ciclicidad = d.ciclicidad;
 
-  const res       = calcScores(r);
-  const baseScore = Math.round(totalScore(res));
-  const histPenalty = calcHistorialPenalty(d);
-  const score     = Math.max(0, Math.min(100, baseScore + histPenalty.penalty));
-  const gate      = checkGating(res);
-  const nd        = calcNuevaDeuda(d, r);
-  const wc        = calcWC(d);
+  const pesos           = getPESOS();
+  const res             = calcScores(r, pesos);
+  const baseScore       = Math.round(totalScore(res));
+  const histPenalty     = calcHistorialPenalty(d);
+  const scoreConPenalty = Math.max(0, Math.min(100, baseScore + histPenalty.penalty));
+  const brpResult       = calcBRP();
+  const scoreConBRP     = Math.max(0, Math.min(100, scoreConPenalty + brpResult.adj));
+  const country         = document.getElementById('pais-domicilio')?.value || '';
+  const preRating       = spRating(scoreConBRP);
+  const sovereign       = calcSovereignCeiling(preRating.ordinal, country);
+  const finalRating     = ratingFromOrdinal(sovereign.finalOrdinal);
+  const score           = scoreConBRP;
+  const gate            = checkGating(res, r);
 
-  _currentData = { d, r, res, score, baseScore, gate, nd, wc, histPenalty };
+  // Mostrar/ocultar elementos developer
+  const devSec    = document.getElementById('dev-fields-section');
+  const devBanner = document.getElementById('dev-mode-banner');
+  const devAnal   = document.getElementById('dev-analysis-section');
+  if (devSec)    devSec.style.display  = isDeveloper() ? '' : 'none';
+  if (devBanner) devBanner.classList.toggle('visible', isDeveloper());
+  if (devAnal)   devAnal.style.display = isDeveloper() ? '' : 'none';
 
-  renderScoring(d, r, res, score, baseScore, gate, histPenalty);
+  const nd = calcNuevaDeuda(d, r);
+  const wc = calcWC(d);
+  _currentData = { d, r, res, score, baseScore, gate, nd, wc, histPenalty, brpResult, sovereign, finalRating };
+  renderScoring(d, r, res, score, baseScore, gate, histPenalty, brpResult, sovereign, finalRating);
+  renderBRPMatrix(brpResult.ir, brpResult.cp, brpResult.brp);
   renderWorkingCapital(d, wc);
   renderNuevaDeuda(d, r, nd);
   renderComparables(d, r);
@@ -1949,7 +2403,7 @@ function update() {
 }
 
 // ── SCORING TAB ──
-function renderScoring(d, r, res, score, baseScore, gate, histPenalty) {
+function renderScoring(d, r, res, score, baseScore, gate, histPenalty, brpResult, sovereign, finalRating) {
   // KPIs
   setText('kpi-ebitda',  r.ebitda.toFixed(1) + ' M€');
   setText('kpi-margin',  r.ebitda_margin.toFixed(1) + '%');
@@ -1968,7 +2422,7 @@ function renderScoring(d, r, res, score, baseScore, gate, histPenalty) {
   }
 
   // SVG Badge
-  updateBadge(score, gate);
+  updateBadge(score, gate, finalRating);
 
   // Stacked bar
   const labels = Object.values(res).map(v => v.nombre);
@@ -2028,6 +2482,16 @@ function renderScoring(d, r, res, score, baseScore, gate, histPenalty) {
 
   // Credit history
   renderCreditHistory(d, histPenalty);
+
+  // Sovereign ceiling warning
+  const sovWarn = document.getElementById('sovereign-warning');
+  const sovJustWrap = document.getElementById('sovereign-justificacion-wrap');
+  if (sovWarn && sovereign) {
+    sovWarn.textContent = sovereign.warning || '';
+    sovWarn.style.background = sovereign.capped ? '#c0392b22' : sovereign.diff >= 2 ? '#e07b3922' : sovereign.diff === 1 ? '#c9a84c22' : 'transparent';
+    sovWarn.style.border = sovereign.capped ? '1px solid #c0392b' : sovereign.diff >= 1 ? '1px solid #c9a84c44' : 'none';
+  }
+  if (sovJustWrap) sovJustWrap.style.display = (sovereign && sovereign.diff >= 1) ? '' : 'none';
 
   // Ratio tiles
   const fmtMap = {
@@ -2112,6 +2576,56 @@ function renderScoring(d, r, res, score, baseScore, gate, histPenalty) {
       </div>`;
   }).join('');
   document.getElementById('risk-grid').innerHTML = riskHtml;
+
+  // Developer analysis
+  const devDiv = document.getElementById('dev-analysis-section');
+  if (devDiv && isDeveloper()) devDiv.innerHTML = buildDevAnalysisHTML(r, res);
+}
+
+function buildDevAnalysisHTML(r, res) {
+  const fmt  = v => v !== null ? v.toFixed(2)+'x' : 'N/D';
+  const fmtp = v => v !== null ? v.toFixed(1)+'%'  : 'N/D';
+  const sem = (v, g, a, inv) => {
+    if (v === null) return 'amarillo';
+    return inv ? (v<=g?'verde':v<=a?'amarillo':'rojo') : (v>=g?'verde':v>=a?'amarillo':'rojo');
+  };
+  const dscrOp_c  = sem(r.dscr_operacional,  1.2, 0.8, false);
+  const dscrCn_c  = sem(r.dscr_constructivo, 1.3, 1.0, false);
+  const rc_c      = sem(r.ratio_construccion,1.5, 2.5, true);
+  const mw_c      = sem(r.madurez_mw,        60,  30,  false);
+  const riesgo    = r.ratio_construccion === null ? 'N/D'
+                  : r.ratio_construccion<=1.5 ? 'Bajo'
+                  : r.ratio_construccion<=2.5 ? 'Medio' : 'Alto';
+  const mw_total  = (r.mw_op||0)+(r.mw_constr||0)+(r.mw_pipe||0);
+  return `<div class="dev-analysis-card">
+    <div class="dev-section-title">⚙ Análisis Project Developer</div>
+    <div class="dev-metric-row">
+      <span><span class="dev-semaforo ${dscrOp_c}"></span>DSCR Operacional</span>
+      <span style="color:#f0f0f5;font-weight:700;">${fmt(r.dscr_operacional)}
+        <small style="color:#55556a;">(≥1.2x verde)</small></span></div>
+    <div class="dev-metric-row">
+      <span><span class="dev-semaforo ${dscrCn_c}"></span>DSCR Constructivo (proyectado)</span>
+      <span style="color:#f0f0f5;font-weight:700;">${fmt(r.dscr_constructivo)}
+        <small style="color:#55556a;">(≥1.3x verde)</small></span></div>
+    <div class="dev-metric-row">
+      <span><span class="dev-semaforo ${rc_c}"></span>Ratio Construcción (capex/liquidez)</span>
+      <span style="color:#f0f0f5;font-weight:700;">${fmt(r.ratio_construccion)}
+        <small style="color:#55556a;">riesgo: ${riesgo}</small></span></div>
+    <div class="dev-metric-row">
+      <span><span class="dev-semaforo ${mw_c}"></span>Madurez Cartera MW (op/op+constr)</span>
+      <span style="color:#f0f0f5;font-weight:700;">${fmtp(r.madurez_mw)}
+        <small style="color:#55556a;">(≥60% verde)</small></span></div>
+    ${mw_total > 0 ? `<div class="dev-metric-row" style="font-size:.78rem;color:#55556a;">
+      <span>${r.mw_op||0} MW op + ${r.mw_constr||0} MW constr + ${r.mw_pipe||0} MW pipeline = ${mw_total} MW total</span>
+    </div>` : ''}
+    <div style="margin-top:.8rem;padding-top:.6rem;border-top:1px solid #1a1a27;
+      font-size:.73rem;color:#55556a;line-height:1.5;">
+      DSCR Operacional = CFADS activos en operación / servicio deuda actual.
+      DSCR Constructivo = CFADS proyectado (cuando complete construcción) /
+      servicio deuda total incluyendo capex comprometido. Pesos recalibrados,
+      PME e inventario excluidos (distorsión constructora).
+    </div>
+  </div>`;
 }
 
 // ── NUEVA DEUDA TAB ──
@@ -2392,6 +2906,49 @@ function renderDetalle(res, score, baseScore, histPenalty) {
 // EXAMPLES
 // ═══════════════════════════════════════════════════════════════
 const EXAMPLES = {
+  viscofan: {
+    // Viscofan S.A. — datos 2023 aprox. Base score=94, BRP2(+4)=98→AAA→España→A
+    ventas:1095, ebitda:274, gastos_fin:12, imp_pagado:57, capex_mant:60,
+    deuda_bruta:370, caja:220, activo_corriente:560, pasivo_corriente:265,
+    clientes:135, proveedores:92, vida_media:5,
+    inventario:198, aprovisionamientos:740,
+    importe:0, plazo:5, tipo_int:6, colateral:0, tipo_col:'inmueble',
+    equipo:'5', concentracion:'5', antiguedad:'5', ciclicidad:'5',
+    sector_comp:'alimentacion',
+    finalidad:'internacional',
+    rai:'ninguna', asnef:'no', impagos:'ninguno', demandas:'ninguna',
+    relacion_bancaria:'buena', anios_sin_incidencias:0,
+    pais_domicilio:'España',
+    // BRP pre-configurado: IR=2, CP=2 → BRP2 Sólido (+4 pts)
+    brp_ciclicidad:'2', brp_barreras:'2', brp_competitiva:'2', brp_regulacion:'2',
+    brp_tamano:'2', brp_diversificacion:'2', brp_ventaja:'1', brp_eficiencia:'2',
+  },
+  grenergy: {
+    // Grenergy Renovables — FY2024. Modo developer: BBB- (match EthiFinance) ✅
+    // Modo estándar: RECHAZO AUTOMÁTICO + BB+
+    ventas:637, ebitda:136, gastos_fin:45, imp_pagado:15, capex_mant:20,
+    deuda_bruta:1018, caja:374, activo_corriente:666, pasivo_corriente:619,
+    clientes:45, proveedores:193, vida_media:15,
+    inventario:197, aprovisionamientos:500,
+    importe:0, plazo:10, tipo_int:6, colateral:0, tipo_col:'inmueble',
+    equipo:'3', concentracion:'4', antiguedad:'3', ciclicidad:'4',
+    sector_comp:'energia',
+    finalidad:'internacional',
+    rai:'ninguna', asnef:'no', impagos:'ninguno', demandas:'ninguna',
+    relacion_bancaria:'buena', anios_sin_incidencias:15,
+    pais_domicilio:'España',
+    // BRP: IR=3, CP=3 → BRP3 Satisfactorio (adj=0)
+    brp_ciclicidad:'2', brp_barreras:'3', brp_competitiva:'3', brp_regulacion:'2',
+    brp_tamano:'3', brp_diversificacion:'3', brp_ventaja:'3', brp_eficiencia:'3',
+    tipo_empresa:       'developer',
+    cfads_operativo:    100,
+    cfads_proyectado:   300,
+    capex_comprometido: 400,
+    lineas_credito:     250,
+    mw_operativos:      800,
+    mw_construccion:    2000,
+    mw_pipeline:        8000,
+  },
   tubacex: {
     ventas:767.5, ebitda:107, gastos_fin:14.5, imp_pagado:5, capex_mant:20,
     deuda_bruta:420, caja:165, activo_corriente:480, pasivo_corriente:378,
@@ -2451,6 +3008,27 @@ function loadExample(name) {
     const el = document.getElementById(f);
     if (el && ex[f] !== undefined) el.value = ex[f];
   });
+  // pais-domicilio uses hyphen ID but underscore key
+  const paisEl = document.getElementById('pais-domicilio');
+  if (paisEl && ex.pais_domicilio !== undefined) paisEl.value = ex.pais_domicilio;
+  // BRP factors: example keys use brp_xxx, HTML IDs use brp-xxx
+  ['brp_ciclicidad','brp_barreras','brp_competitiva','brp_regulacion',
+   'brp_tamano','brp_diversificacion','brp_ventaja','brp_eficiencia'].forEach(f => {
+    const id = f.replace('_','-');
+    const el = document.getElementById(id);
+    if (el && ex[f] !== undefined) el.value = ex[f];
+  });
+  // tipo-empresa
+  const tipoEl = document.getElementById('tipo-empresa');
+  if (tipoEl && ex.tipo_empresa !== undefined) tipoEl.value = ex.tipo_empresa;
+
+  // Developer fields (key uses _ , ID uses -)
+  ['cfads_operativo','cfads_proyectado','capex_comprometido','lineas_credito',
+   'mw_operativos','mw_construccion','mw_pipeline'].forEach(f => {
+    const el = document.getElementById(f.replace(/_/g,'-'));
+    if (el && ex[f] !== undefined) el.value = ex[f];
+  });
+
   _colRows = (ex.colRows || []).map(r => ({ tipo: r.tipo, desc: r.desc, bruto: r.bruto }));
   renderColTable();
   update();
@@ -2517,7 +3095,7 @@ function resetForm() {
 // ═══════════════════════════════════════════════════════════════
 // TABS
 // ═══════════════════════════════════════════════════════════════
-const TAB_IDS = ['scoring','wc','nueva_deuda','comparables','covenants','colateral','detalle'];
+const TAB_IDS = ['scoring','brp','wc','nueva_deuda','comparables','covenants','colateral','detalle'];
 
 function switchTab(name) {
   TAB_IDS.forEach(t => {
@@ -2770,16 +3348,41 @@ function exportPDF() {
                       : '#111';
   }
 
+  // BRP + Sovereign info for PDF
+  if (_currentData) {
+    const brp = _currentData.brpResult;
+    const sov = _currentData.sovereign;
+    const fr  = _currentData.finalRating;
+    if (brp) setText2('sum-brp', `BRP ${brp.brp} — ${brp.label} (ajuste ${brp.adj >= 0 ? '+' : ''}${brp.adj} pts)`);
+    if (sov && fr) {
+      let sovTxt = fr.rating;
+      if (sov.capped) sovTxt += ` (cap soberano)`;
+      setText2('sum-sovereign', sovTxt);
+    }
+  }
+
+  const pdfDevSec = document.getElementById('pdf-dev-section');
+  if (pdfDevSec) {
+    if (isDeveloper() && _currentData) {
+      pdfDevSec.style.display = 'block';
+      pdfDevSec.innerHTML = buildDevAnalysisHTML(_currentData.r, _currentData.res);
+    } else {
+      pdfDevSec.style.display = 'none';
+    }
+  }
+
   // Dynamic paragraph
   const sumEmp = document.getElementById('pdf-summary-empresa');
   if (sumEmp) {
     const empName = emp || 'la empresa analizada';
+    const brpStr = _currentData?.brpResult ? ` BRP ${_currentData.brpResult.brp} (${_currentData.brpResult.label}).` : '';
+    const sovStr = _currentData?.sovereign?.capped ? ` Rating final ajustado por techo soberano.` : '';
     sumEmp.textContent = 'El presente informe analiza la capacidad crediticia de ' + empName +
       ', empresa del sector ' + (sectorLabel || '—').toLowerCase() +
       ', con una necesidad de financiación declarada para ' + (finalidadLabel || '—').toLowerCase() +
       '. El modelo de scoring interno asigna una puntuación de ' + scoreVal + '/100' +
       ' (equivalente a calificación ' + ratingVal + ' en escala S&P),' +
-      ' con decisión de crédito: ' + decisionVal + '.';
+      ' con decisión de crédito: ' + decisionVal + '.' + brpStr + sovStr;
   }
 
   // Show cover + summary + all sections + legal + print headers
@@ -2937,6 +3540,96 @@ window.addEventListener('afterprint', () => {
 });
 
 // ── Init ──
+// ── Carga automática desde scoring_data.json ──────────────────────────────
+// Mapeo JSON canónico → IDs del formulario HTML
+const _JSON_MAP = {
+  empresa:                { id: 'empresa-nombre',        t: 'text'   },
+  ventas_netas:           { id: 'ventas',                t: 'number' },
+  gastos_financieros:     { id: 'gastos_fin',            t: 'number' },
+  impuesto_pagado:        { id: 'imp_pagado',            t: 'number' },
+  activo_corriente:       { id: 'activo_corriente',      t: 'number' },
+  pasivo_corriente:       { id: 'pasivo_corriente',      t: 'number' },
+  clientes:               { id: 'clientes',              t: 'number' },
+  proveedores:            { id: 'proveedores',           t: 'number' },
+  aprovisionamientos:     { id: 'aprovisionamientos',    t: 'number' },
+  deuda_financiera_bruta: { id: 'deuda_bruta',           t: 'number' },
+  efectivo:               { id: 'caja',                  t: 'number' },
+  vida_media_deuda:       { id: 'vida_media',            t: 'number' },
+  inventario:             { id: 'inventario',            t: 'number' },
+  sector:                 { id: 'sector_comp',           t: 'select' },
+  equipo_directivo:       { id: 'equipo',                t: 'select' },
+  concentracion_clientes: { id: 'concentracion',         t: 'select' },
+  antiguedad:             { id: 'antiguedad',            t: 'select' },
+  estabilidad_sector:     { id: 'ciclicidad',            t: 'select' },
+  rai:                    { id: 'rai',                   t: 'select' },
+  asnef:                  { id: 'asnef',                 t: 'select' },
+  impagos:                { id: 'impagos',               t: 'select' },
+  demandas:               { id: 'demandas',              t: 'select' },
+  relacion_bancaria:      { id: 'relacion_bancaria',     t: 'select' },
+  anos_sin_incidencias:   { id: 'anios_sin_incidencias', t: 'number' },
+  finalidad:              { id: 'finalidad',             t: 'select' },
+  importe_solicitado:     { id: 'importe',               t: 'number' },
+  plazo:                  { id: 'plazo',                 t: 'number' },
+  tipo_interes:           { id: 'tipo_int',              t: 'number' },
+  pais_domicilio:         { id: 'pais-domicilio',        t: 'select' },
+};
+
+async function cargarDesdeJSON() {
+  try {
+    const res = await fetch('./scoring_data.json?_=' + Date.now());
+    if (!res.ok) return;
+    const d = await res.json();
+    if (!d || typeof d !== 'object') return;
+
+    let populated = 0;
+
+    // Caso especial: ebitda = ebit + amortizacion
+    if (d.ebit != null || d.amortizacion != null) {
+      const ebitEl = document.getElementById('ebitda');
+      if (ebitEl) {
+        const val = (parseFloat(d.ebit) || 0) + (parseFloat(d.amortizacion) || 0);
+        ebitEl.value = Math.round(val * 100) / 100;
+        ebitEl.dispatchEvent(new Event('input',  { bubbles: true }));
+        ebitEl.dispatchEvent(new Event('change', { bubbles: true }));
+        populated++;
+      }
+    }
+
+    // Rellenar todos los campos mapeados
+    for (const [key, { id, t }] of Object.entries(_JSON_MAP)) {
+      if (d[key] == null) continue;
+      const el = document.getElementById(id);
+      if (!el) continue;
+      el.value = (t === 'select') ? String(d[key]) : d[key];
+      el.dispatchEvent(new Event('input',  { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      populated++;
+    }
+
+    if (populated === 0) return;
+
+    // Recalcular scoring
+    if (typeof update === 'function') update();
+
+    // Banner de confirmación (desaparece en 5 s)
+    const b = document.createElement('div');
+    b.style.cssText = [
+      'position:fixed', 'top:1rem', 'right:1rem', 'z-index:9999',
+      'background:#4caf7d', 'color:#fff', 'padding:.7rem 1.2rem',
+      'border-radius:8px', 'font-size:.875rem', 'font-weight:600',
+      'box-shadow:0 4px 16px rgba(0,0,0,.35)',
+      'animation:jsonBanner 5s forwards',
+      'pointer-events:none',
+    ].join(';');
+    b.textContent = '✅ Datos cargados automáticamente — Revisa y exporta PDF';
+    document.body.appendChild(b);
+    setTimeout(() => b.remove(), 5200);
+
+  } catch (_) {
+    // scoring_data.json no existe — carga normal sin banner
+  }
+}
+
 window.addEventListener('load', () => {
   // Report header
   const now = new Date();
@@ -2944,8 +3637,9 @@ window.addEventListener('load', () => {
   if (rn) rn.textContent = 'TO-' + now.getFullYear() + '-' + (Math.floor(1000 + Math.random() * 9000));
   const rd = document.getElementById('report-date');
   if (rd) rd.textContent = now.toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric' });
-  // Load Tubacex as default example
+  // Cargar ejemplo por defecto; luego intentar sobreescribir con scoring_data.json
   loadExample('tubacex');
+  cargarDesdeJSON();
 });
 </script>
 <!-- ── Print frame (hidden on screen, visible in print) ── -->

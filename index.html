@@ -1366,6 +1366,12 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
       <div id="credit-hist-content"></div>
     </div>
 
+    <!-- Ajuste ciclicidad sectorial -->
+    <div id="cyclicality-section" class="card" style="margin-bottom:1.4rem;display:none;">
+      <div class="card-title">Ajuste por Ciclicidad Sectorial</div>
+      <div id="cyclicality-content"></div>
+    </div>
+
     <!-- Techo Soberano -->
     <div class="card" style="margin-bottom:1.4rem;">
       <div class="card-title">País de Domicilio — Techo Soberano</div>
@@ -1887,6 +1893,25 @@ function renderWorkingCapital(d, wc) {
 }
 
 // ── Historial Crediticio ──
+function calcCyclicalityAdj(d, res) {
+  const cic = parseInt(d.ciclicidad) || 3;
+  // Descuento sobre métricas financieras sensibles al ciclo
+  // cic 1=muy cíclico (construcción/shipping), 5=muy estable (utilities)
+  const discounts = { 1: 0.20, 2: 0.14, 3: 0.07, 4: 0.02, 5: 0.00 };
+  const discount  = discounts[cic] !== undefined ? discounts[cic] : 0.07;
+  if (discount === 0) return { adj: 0, discount: 0, financialContrib: 0, cicLabel: null };
+
+  const financialKeys = ['dscr', 'deuda_ebitda', 'ebitda_margin', 'llcr', 'ffo_dfn'];
+  let financialContrib = 0;
+  for (const k of financialKeys) { if (res[k]) financialContrib += res[k].contrib; }
+
+  const adj = -Math.round(financialContrib * discount);
+  const cicLabels = { 1:'Muy alta (1/5)', 2:'Alta (2/5)', 3:'Media (3/5)', 4:'Baja (4/5)' };
+  const pctLabels = { 1:'20%', 2:'14%', 3:'7%', 4:'2%' };
+  return { adj, discount, financialContrib: +financialContrib.toFixed(1),
+           cicLabel: cicLabels[cic] || 'Media', pctLabel: pctLabels[cic] || '7%' };
+}
+
 function calcHistorialPenalty(d) {
   let penalty = 0;
   const reasons = [];
@@ -2509,8 +2534,9 @@ function update() {
   const pesos           = getPESOS();
   const res             = calcScores(r, pesos);
   const baseScore       = Math.round(totalScore(res));
+  const cyclAdj         = calcCyclicalityAdj(d, res);
   const histPenalty     = calcHistorialPenalty(d);
-  const scoreConPenalty = Math.max(0, Math.min(100, baseScore + histPenalty.penalty));
+  const scoreConPenalty = Math.max(0, Math.min(100, baseScore + cyclAdj.adj + histPenalty.penalty));
   const brpResult       = calcBRP();
   const effectiveBrpAdj = _brpConfirmed ? brpResult.adj : 0;
   const scoreConBRP     = Math.max(0, Math.min(100, scoreConPenalty + effectiveBrpAdj));
@@ -2540,8 +2566,8 @@ function update() {
 
   const nd = calcNuevaDeuda(d, r);
   const wc = calcWC(d);
-  _currentData = { d, r, res, score, baseScore, gate, nd, wc, histPenalty, brpResult, sovereign, finalRating };
-  renderScoring(d, r, res, score, baseScore, gate, histPenalty, brpResult, sovereign, finalRating);
+  _currentData = { d, r, res, score, baseScore, gate, nd, wc, cyclAdj, histPenalty, brpResult, sovereign, finalRating };
+  renderScoring(d, r, res, score, baseScore, gate, histPenalty, cyclAdj, brpResult, sovereign, finalRating);
   renderBRPMatrix(brpResult.ir, brpResult.cp, brpResult.brp);
   renderWorkingCapital(d, wc);
   renderNuevaDeuda(d, r, nd);
@@ -2552,7 +2578,32 @@ function update() {
 }
 
 // ── SCORING TAB ──
-function renderScoring(d, r, res, score, baseScore, gate, histPenalty, brpResult, sovereign, finalRating) {
+function renderCyclicalityAdj(cyclAdj) {
+  const sec = document.getElementById('cyclicality-section');
+  const cnt = document.getElementById('cyclicality-content');
+  if (!sec || !cnt) return;
+  if (!cyclAdj || cyclAdj.adj === 0) { sec.style.display = 'none'; return; }
+  sec.style.display = '';
+  cnt.innerHTML =
+    `<div class="hist-row">
+       <span class="hist-lbl">Ciclicidad sectorial</span>
+       <span class="hist-val">${cyclAdj.cicLabel}</span>
+     </div>
+     <div class="hist-row">
+       <span class="hist-lbl">Descuento aplicado (DSCR · DFN/EBITDA · Mg.EBITDA · LLCR · FFO/DFN)</span>
+       <span class="hist-val">${cyclAdj.pctLabel}</span>
+     </div>
+     <div class="hist-row">
+       <span class="hist-lbl">Contribución financiera base</span>
+       <span class="hist-val">${cyclAdj.financialContrib} pts</span>
+     </div>
+     <div class="hist-row" style="border-top:2px solid #1f1f2e;margin-top:.3rem;padding-top:.5rem;">
+       <span style="font-weight:700;color:#f0f0f5;">Ajuste total sobre score cuantitativo</span>
+       <span class="hist-val hist-penalty" style="font-size:1rem;">${cyclAdj.adj} pts</span>
+     </div>`;
+}
+
+function renderScoring(d, r, res, score, baseScore, gate, histPenalty, cyclAdj, brpResult, sovereign, finalRating) {
   // KPIs
   setText('kpi-ebitda',  r.ebitda.toFixed(1) + ' M€');
   setText('kpi-margin',  r.ebitda_margin.toFixed(1) + '%');
@@ -2628,6 +2679,9 @@ function renderScoring(d, r, res, score, baseScore, gate, histPenalty, brpResult
   setText('rec-icon', icon);
   setText('rec-decision', decision);
   setText('rec-text', text);
+
+  // Cyclicality adjustment card
+  renderCyclicalityAdj(cyclAdj);
 
   // Credit history
   renderCreditHistory(d, histPenalty);
@@ -3321,15 +3375,15 @@ function loadExample(name) {
     const el = document.getElementById(id);
     if (el && ex[f] !== undefined) el.value = ex[f];
   });
-  // tipo-empresa
+  // tipo-empresa — always reset to default to avoid developer mode contamination
   const tipoEl = document.getElementById('tipo-empresa');
-  if (tipoEl && ex.tipo_empresa !== undefined) tipoEl.value = ex.tipo_empresa;
+  if (tipoEl) tipoEl.value = ex.tipo_empresa || 'operativa';
 
-  // Developer fields (key uses _ , ID uses -)
+  // Developer fields — always reset to 0, then apply example value
   ['cfads_operativo','cfads_proyectado','capex_comprometido','lineas_credito',
    'mw_operativos','mw_construccion','mw_pipeline'].forEach(f => {
     const el = document.getElementById(f.replace(/_/g,'-'));
-    if (el && ex[f] !== undefined) el.value = ex[f];
+    if (el) el.value = ex[f] !== undefined ? ex[f] : 0;
   });
 
   // Amortization structure fields — always reset to default first, then apply example value
@@ -3393,6 +3447,8 @@ function resetForm() {
   if (wsumm) wsumm.innerHTML = '';
   const chsec = document.getElementById('credit-hist-section');
   if (chsec) chsec.style.display = 'none';
+  const cycsec = document.getElementById('cyclicality-section');
+  if (cycsec) cycsec.style.display = 'none';
   // Reset colateral inventory
   _colRows = [];
   renderColTable();

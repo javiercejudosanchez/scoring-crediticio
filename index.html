@@ -239,6 +239,29 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
 .pd-interp   { font-size:.78rem; color:#a0a0b8; margin-top:.75rem;
   padding-top:.65rem; border-top:1px solid #1a1a27; line-height:1.5; }
 
+/* ── Pricing Reference card ── */
+.prc-card { background:#111118; border:1px solid #1f1f2e; border-left:4px solid #4c8faf;
+  border-radius:12px; padding:1rem 1.2rem; margin-bottom:1.2rem; }
+.prc-cols { display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; margin-bottom:1rem; }
+@media (max-width:600px) { .prc-cols { grid-template-columns:1fr; } }
+.prc-col-title { font-size:.72rem; font-weight:700; text-transform:uppercase;
+  letter-spacing:.06em; color:#55556a; margin-bottom:.5rem; }
+.prc-bps { font-size:1.6rem; font-weight:900; color:#f0f0f5; line-height:1; }
+.prc-bps-unit { font-size:.72rem; font-weight:400; color:#55556a; margin-left:.2rem; }
+.prc-range { font-size:.78rem; color:#a0a0b8; margin-top:.2rem; }
+.prc-coupon-row { padding:.7rem .8rem; background:#0e0e15; border-radius:8px;
+  border:1px solid #1a1a27; margin-bottom:.7rem; }
+.prc-coupon-val { font-size:1.1rem; font-weight:800; color:#c9a84c; }
+.prc-coupon-lbl { font-size:.72rem; font-weight:700; text-transform:uppercase;
+  letter-spacing:.06em; color:#55556a; margin-bottom:.25rem; }
+.prc-disclaimer { font-size:.72rem; color:#33334a; margin-top:.35rem; line-height:1.4; }
+.prc-badge { display:inline-block; padding:.25rem .65rem; border-radius:20px;
+  font-size:.73rem; font-weight:700; letter-spacing:.03em; margin-top:.6rem; }
+.prc-badge.ig    { background:rgba(76,143,175,.15); color:#4c8faf; border:1px solid rgba(76,143,175,.3); }
+.prc-badge.hy    { background:rgba(201,168,76,.12); color:#c9a84c; border:1px solid rgba(201,168,76,.3); }
+.prc-badge.spec  { background:rgba(224,123,57,.12); color:#e07b39; border:1px solid rgba(224,123,57,.3); }
+.prc-illiq { font-size:.75rem; color:#a0a0b8; margin-top:.45rem; line-height:1.45; }
+
 /* ── Charts grid ── */
 .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem;
               margin-bottom: 1.4rem; }
@@ -960,6 +983,7 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
   </p>
   <div id="pdf-dev-section" style="display:none;margin-top:1.2rem;"></div>
   <div id="pdf-pd-section" style="display:none;margin-top:1.2rem;"></div>
+  <div id="pdf-pricing-section" style="display:none;margin-top:1.2rem;"></div>
   <div id="pdf-stress-section" style="display:none;margin-top:1.2rem;"></div>
 </div>
 
@@ -1415,6 +1439,9 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
 
     <!-- PD card -->
     <div id="pd-card" class="pd-card" style="display:none;"></div>
+
+    <!-- Pricing Reference card -->
+    <div id="pricing-ref-card" class="prc-card" style="display:none;"></div>
 
     <!-- Stress rating card -->
     <div id="stress-rating-card" class="stress-rating-card" style="display:none;"></div>
@@ -2199,6 +2226,96 @@ function renderPDCard(finalRating, stressResult) {
         S&amp;P Global historical avg. 1981–2023</small></div>
     <div class="pd-cols">${colBase}${colStress}</div>
     <div class="pd-interp">${interp}</div>`;
+}
+
+// ── Pricing Reference (spread sobre midswap EUR, mercado primario europeo) ──
+// Actualizar MIDSWAP_EUR_3Y según condiciones de mercado en fecha de emisión
+const MIDSWAP_EUR_3Y = 2.45; // % — referencia iBoxx EUR, Q1 2025
+
+const SPREAD_TABLE = {
+  'AAA':  { mid:  40, min:  25, max:   55 },
+  'AA+':  { mid:  50, min:  35, max:   70 },
+  'AA':   { mid:  60, min:  45, max:   80 },
+  'AA-':  { mid:  75, min:  55, max:   95 },
+  'A+':   { mid:  90, min:  70, max:  115 },
+  'A':    { mid: 105, min:  80, max:  130 },
+  'A-':   { mid: 125, min:  95, max:  155 },
+  'BBB+': { mid: 155, min: 120, max:  190 },
+  'BBB':  { mid: 185, min: 145, max:  230 },
+  'BBB-': { mid: 230, min: 180, max:  290 },
+  'BB+':  { mid: 310, min: 250, max:  380 },
+  'BB':   { mid: 400, min: 330, max:  490 },
+  'BB-':  { mid: 510, min: 420, max:  620 },
+  'B+':   { mid: 650, min: 530, max:  790 },
+  'B':    { mid: 820, min: 670, max: 1000 },
+  'B-':   { mid:1050, min: 850, max: 1280 },
+};
+const SPREAD_FALLBACK = { mid:1500, min:1200, max:1800 }; // CCC/C y por debajo
+function getSpread(rating) { return SPREAD_TABLE[rating] || SPREAD_FALLBACK; }
+
+function _prcBadgeHTML(spreadMid) {
+  if (spreadMid < 200) return `<span class="prc-badge ig">Grado Inversión — mercado líquido</span>`;
+  if (spreadMid <= 500) return `<span class="prc-badge hy">High Yield — prima iliquidez tokenizada recomendada: +50–75 bps</span>`;
+  return `<span class="prc-badge spec">Especulativo — prima iliquidez tokenizada recomendada: +100–150 bps</span>`;
+}
+
+function _prcColHTML(title, rating, sp) {
+  return `
+    <div>
+      <div class="prc-col-title">${title}</div>
+      <div style="display:flex;align-items:baseline;gap:.3rem;">
+        <span class="prc-bps">${sp.mid}</span>
+        <span class="prc-bps-unit">bps sobre midswap</span>
+      </div>
+      <div class="prc-range">Rango: ${sp.min} – ${sp.max} bps</div>
+      <div style="font-size:.76rem;color:#55556a;margin-top:.3rem;">
+        Rating: <strong style="color:${rating?.color||'#c9a84c'};">${rating?.rating||'—'}</strong>
+      </div>
+    </div>`;
+}
+
+function renderPricingCard(finalRating, stressResult) {
+  const card = document.getElementById('pricing-ref-card');
+  if (!card || !finalRating) { if (card) card.style.display = 'none'; return; }
+
+  const spBase    = getSpread(finalRating.rating);
+  const srRating  = (_stressEnabled && stressResult) ? stressResult.finalRatingS : null;
+  const spStress  = srRating ? getSpread(srRating.rating) : null;
+
+  const ms = MIDSWAP_EUR_3Y;
+  const couponMin = ((ms + spBase.min / 100)).toFixed(2);
+  const couponMax = ((ms + spBase.max / 100)).toFixed(2);
+  const couponMid = ((ms + spBase.mid / 100)).toFixed(2);
+
+  const colBase   = _prcColHTML('Spread estimado (Rating Base)', finalRating, spBase);
+  const colStress = spStress
+    ? _prcColHTML('Spread estimado (Rating Stress)', srRating, spStress)
+    : `<div>
+         <div class="prc-col-title" style="color:#33334a;">Spread estimado (Rating Stress)</div>
+         <div style="color:#33334a;font-size:.82rem;padding:.4rem 0;">Stress desactivado</div>
+       </div>`;
+
+  const illiqNote = spBase.mid < 200
+    ? 'Activo investment grade. En emisión tokenizada sin mercado secundario regulado, considerar prima de iliquidez de +25–50 bps adicionales.'
+    : spBase.mid <= 500
+    ? 'Activo high yield. En tokenización, añadir prima de iliquidez de +50–75 bps al spread de referencia para reflejar la menor transferibilidad del token.'
+    : 'Perfil especulativo. Prima de iliquidez tokenizada recomendada: +100–150 bps sobre el spread de mercado comparable.';
+
+  card.style.display = '';
+  card.innerHTML = `
+    <div class="card-title" style="margin-bottom:.8rem;">Pricing de Referencia
+      <small style="font-weight:400;color:#55556a;font-size:.72rem;margin-left:.5rem;">
+        iBoxx EUR Corporates · mercado primario 2024–2025</small></div>
+    <div class="prc-cols">${colBase}${colStress}</div>
+    <div class="prc-coupon-row">
+      <div class="prc-coupon-lbl">Cupón orientativo — emisión tokenizada</div>
+      <div class="prc-coupon-val">${couponMin}% – ${couponMax}% anual
+        <small style="font-size:.72rem;font-weight:400;color:#a0a0b8;margin-left:.4rem;">
+          (mid: ${couponMid}%)</small></div>
+      <div class="prc-disclaimer">Asume midswap EUR 3Y ~${ms.toFixed(2)}%. Actualizar según fecha de emisión. No constituye asesoramiento financiero.</div>
+    </div>
+    ${_prcBadgeHTML(spBase.mid)}
+    <div class="prc-illiq">${illiqNote}</div>`;
 }
 
 function calcCyclicalityAdj(d, res) {
@@ -2992,6 +3109,9 @@ function renderScoring(d, r, res, score, baseScore, gate, histPenalty, cyclAdj, 
   // PD card
   renderPDCard(finalRating, stressResult);
 
+  // Pricing Reference card
+  renderPricingCard(finalRating, stressResult);
+
   // Stress rating card
   renderStressCard(stressResult, finalRating);
 
@@ -3772,6 +3892,8 @@ function resetForm() {
   if (cycsec) cycsec.style.display = 'none';
   const pdcard = document.getElementById('pd-card');
   if (pdcard) pdcard.style.display = 'none';
+  const prcCard = document.getElementById('pricing-ref-card');
+  if (prcCard) prcCard.style.display = 'none';
   const stressCard = document.getElementById('stress-rating-card');
   if (stressCard) stressCard.style.display = 'none';
   // Reset colateral inventory
@@ -4113,6 +4235,56 @@ function exportPDF() {
         </div>`;
     } else {
       pdfPdSec.style.display = 'none';
+    }
+  }
+
+  // ── Pricing Reference block ──
+  const pdfPrcSec = document.getElementById('pdf-pricing-section');
+  if (pdfPrcSec) {
+    const fr = _currentData?.finalRating;
+    if (fr) {
+      const spBase   = getSpread(fr.rating);
+      const srRating = (_stressEnabled && _currentData.stressResult) ? _currentData.stressResult.finalRatingS : null;
+      const spStress = srRating ? getSpread(srRating.rating) : null;
+      const ms = MIDSWAP_EUR_3Y;
+      const couponMin = (ms + spBase.min / 100).toFixed(2);
+      const couponMax = (ms + spBase.max / 100).toFixed(2);
+      const couponMid = (ms + spBase.mid / 100).toFixed(2);
+      const badgeTxt  = spBase.mid < 200  ? 'Grado Inversión — mercado líquido'
+                      : spBase.mid <= 500 ? 'High Yield — prima iliquidez tokenizada recomendada: +50–75 bps'
+                      :                    'Especulativo — prima iliquidez tokenizada: +100–150 bps';
+      const badgeCol  = spBase.mid < 200  ? '#2a6090' : spBase.mid <= 500 ? '#9b6c0a' : '#a04020';
+      const badgeBg   = spBase.mid < 200  ? '#e8f4fb' : spBase.mid <= 500 ? '#fdf6e3' : '#fdf1e8';
+      const prcColPDF = (title, rating, sp) =>
+        `<div style="flex:1;min-width:140px;">
+          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;margin-bottom:.35rem;">${title}</div>
+          <div style="font-size:1.4rem;font-weight:900;color:#222;">${sp.mid} <span style="font-size:.7rem;font-weight:400;color:#888;">bps sobre midswap</span></div>
+          <div style="font-size:.78rem;color:#666;margin-top:.1rem;">Rango: ${sp.min} – ${sp.max} bps</div>
+          <div style="font-size:.74rem;color:#888;margin-top:.2rem;">Rating: <strong style="color:${rating?.color||'#c9a84c'};">${rating?.rating||'—'}</strong></div>
+        </div>`;
+      pdfPrcSec.style.display = 'block';
+      pdfPrcSec.innerHTML = `
+        <div style="border:1px solid #cde;border-left:4px solid #4c8faf;border-radius:8px;padding:.8rem 1rem;background:#fafcff;">
+          <div style="font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#2a6090;margin-bottom:.6rem;">
+            Pricing de Referencia
+            <span style="font-weight:400;color:#888;text-transform:none;letter-spacing:0;font-size:.7rem;margin-left:.5rem;">
+              iBoxx EUR Corporates · mercado primario 2024–2025</span>
+          </div>
+          <div style="display:flex;gap:1.5rem;align-items:flex-start;flex-wrap:wrap;margin-bottom:.7rem;">
+            ${prcColPDF('Spread estimado (Rating Base)', fr, spBase)}
+            ${spStress ? prcColPDF('Spread estimado (Rating Stress)', srRating, spStress) : '<div style="flex:1;color:#aaa;font-size:.82rem;padding-top:.8rem;">Stress desactivado</div>'}
+          </div>
+          <div style="background:#fffdf5;border:1px solid #e8e0c8;border-radius:6px;padding:.5rem .75rem;margin-bottom:.5rem;">
+            <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#888;margin-bottom:.2rem;">Cupón orientativo — emisión tokenizada</div>
+            <div style="font-size:1.05rem;font-weight:800;color:#9b6c0a;">${couponMin}% – ${couponMax}% anual
+              <span style="font-size:.72rem;font-weight:400;color:#888;margin-left:.3rem;">(mid: ${couponMid}%)</span></div>
+            <div style="font-size:.7rem;color:#aaa;margin-top:.2rem;">Asume midswap EUR 3Y ~${ms.toFixed(2)}%. Actualizar según fecha de emisión. No constituye asesoramiento financiero.</div>
+          </div>
+          <div style="display:inline-block;padding:.2rem .55rem;border-radius:16px;font-size:.72rem;font-weight:700;
+                      background:${badgeBg};color:${badgeCol};border:1px solid ${badgeCol}44;">${badgeTxt}</div>
+        </div>`;
+    } else {
+      pdfPrcSec.style.display = 'none';
     }
   }
 

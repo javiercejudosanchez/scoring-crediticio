@@ -978,6 +978,9 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
     <button class="ex-btn" onclick="loadExample('grenergy')">Grenergy</button>
     <button class="ex-btn" onclick="loadExample('tubacex')">Tubacex</button>
     <button class="ex-btn" onclick="loadExample('antolin')">Gr. Antolín</button>
+    <button class="ex-btn" onclick="loadExample('acerinox_europa')">Acerinox Europa</button>
+    <button class="ex-btn" onclick="loadExample('nas')">NAS (EEUU)</button>
+    <button class="ex-btn" onclick="loadExample('columbus')">Columbus ZA</button>
     <button class="ex-btn" onclick="loadExample('aa')">Perfil AA</button>
     <button class="ex-btn" onclick="loadExample('c')">Perfil C</button>
   </div>
@@ -3186,6 +3189,80 @@ const EXAMPLES = {
     // → BRP3 Satisfactorio (ajuste 0 pts)
     brp_ciclicidad:'2', brp_barreras:'3', brp_competitiva:'4', brp_regulacion:'4',
     brp_tamano:'3', brp_diversificacion:'2', brp_ventaja:'3', brp_eficiencia:'4',
+  },
+  acerinox_europa: {
+    nombre_empresa: 'Acerinox Europa S.A.',
+    // FY2024 — huelga 5 meses (feb-jun 2024) → impacto EBITDA estimado -€84M
+    // Sin huelga EBITDA normalizado ~€196M, DSCR normalizado ~1.4x
+    // DSCR real FY2024: 0.50x (estrés operativo real — gating activado)
+    // Planta El Campo de Gibraltar (Cádiz) — mayor planta acero inox de Europa
+    // DFN: €330M | Deuda bruta: €450M | Caja: €120M
+    ventas:1820, ebitda:112, gastos_fin:25, imp_pagado:12, capex_mant:65,
+    deuda_bruta:450, caja:120, activo_corriente:1050, pasivo_corriente:510,
+    clientes:180, proveedores:240, vida_media:5,
+    estructura_amort:'bullet', amort_real:45,
+    inventario:720, aprovisionamientos:1440,
+    importe:0, plazo:5, tipo_int:5.5, colateral:0, tipo_col:'inmueble',
+    equipo:'4', concentracion:'3', antiguedad:'5', ciclicidad:'2',
+    sector_comp:'metalurgia',
+    finalidad:'refinanciacion',
+    rai:'ninguna', asnef:'no', impagos:'ninguno', demandas:'ninguna',
+    relacion_bancaria:'buena', anios_sin_incidencias:20,
+    pais_domicilio:'España',
+    // BRP: Metalurgia — IR3 (ciclicidad alta, acero inox commodity)
+    //                   CP3 (operador incumbente, planta líder europea)
+    // → BRP3 Satisfactorio (ajuste 0 pts)
+    // NOTA: Score 48, GATING DSCR<1.0 (0.50x refleja huelga FY2024)
+    // Rating BB- | Normalizado sin huelga: ~BB+ / BBB-
+    brp_ciclicidad:'3', brp_barreras:'3', brp_competitiva:'3', brp_regulacion:'3',
+    brp_tamano:'2', brp_diversificacion:'3', brp_ventaja:'3', brp_eficiencia:'3',
+  },
+  nas: {
+    nombre_empresa: 'North American Stainless Inc.',
+    // FY2024 — mayor planta integrada acero inox de EEUU (Ghent, Kentucky)
+    // Mejor desempeño del grupo en 2024. Integración Haynes International completada.
+    // EBITDA ~€185M est. | DFN: €190M | Margen EBITDA 10.8%
+    // Sin cap soberano (EEUU) → rating A+ con BRP2
+    ventas:1720, ebitda:185, gastos_fin:22, imp_pagado:20, capex_mant:80,
+    deuda_bruta:380, caja:190, activo_corriente:920, pasivo_corriente:450,
+    clientes:165, proveedores:220, vida_media:6,
+    inventario:700, aprovisionamientos:1350,
+    importe:0, plazo:5, tipo_int:5.5, colateral:0, tipo_col:'inmueble',
+    equipo:'4', concentracion:'4', antiguedad:'4', ciclicidad:'3',
+    sector_comp:'metalurgia',
+    finalidad:'maquinaria',
+    rai:'ninguna', asnef:'no', impagos:'ninguno', demandas:'ninguna',
+    relacion_bancaria:'buena', anios_sin_incidencias:15,
+    pais_domicilio:'EEUU',
+    // BRP: Metalurgia — IR3 (mercado EEUU competitivo, ciclicidad moderada)
+    //                   CP2 (liderazgo claro EEUU, eficiencia operativa alta)
+    // → BRP2 Fuerte (+4 pts)
+    // Score 78 + BRP2(+4) = 82 → A+ (EEUU sin cap soberano)
+    brp_ciclicidad:'3', brp_barreras:'3', brp_competitiva:'2', brp_regulacion:'2',
+    brp_tamano:'2', brp_diversificacion:'3', brp_ventaja:'2', brp_eficiencia:'2',
+  },
+  columbus: {
+    nombre_empresa: 'Columbus Stainless (Pty) Ltd.',
+    // FY2024 — único productor integrado acero inox en África (Middelburg, Sudáfrica)
+    // EBITDA ~€87M est. (R1.7bn) | DFN: €130M | tipo ZAR/EUR estimado
+    // Cap soberano Sudáfrica (BB+) → rating final BB+ aunque score fundamentals BBB
+    ventas:620, ebitda:87, gastos_fin:14, imp_pagado:8, capex_mant:25,
+    deuda_bruta:185, caja:55, activo_corriente:390, pasivo_corriente:195,
+    clientes:80, proveedores:100, vida_media:4,
+    inventario:250, aprovisionamientos:480,
+    importe:0, plazo:5, tipo_int:8.5, colateral:0, tipo_col:'inmueble',
+    equipo:'3', concentracion:'3', antiguedad:'4', ciclicidad:'2',
+    sector_comp:'metalurgia',
+    finalidad:'internacional',
+    rai:'ninguna', asnef:'no', impagos:'ninguno', demandas:'ninguna',
+    relacion_bancaria:'buena', anios_sin_incidencias:10,
+    pais_domicilio:'Sudáfrica',
+    // BRP: Metalurgia África — IR3 (entorno regulatorio/político, riesgo divisa)
+    //                          CP3 (monopolio regional, planta única)
+    // → BRP3 Satisfactorio (ajuste 0 pts)
+    // Score 65 → BBB → sovereign cap Sudáfrica (BB+) → rating final BB+
+    brp_ciclicidad:'3', brp_barreras:'3', brp_competitiva:'3', brp_regulacion:'4',
+    brp_tamano:'3', brp_diversificacion:'3', brp_ventaja:'3', brp_eficiencia:'3',
   }
 };
 
@@ -3230,13 +3307,13 @@ function loadExample(name) {
     if (el && ex[f] !== undefined) el.value = ex[f];
   });
 
-  // Amortization structure fields
+  // Amortization structure fields — always reset to default first, then apply example value
   const estructAmEl = document.getElementById('estructura_amort');
-  if (estructAmEl && ex.estructura_amort !== undefined) estructAmEl.value = ex.estructura_amort;
+  if (estructAmEl) estructAmEl.value = ex.estructura_amort || 'amortizante';
   const amortRealEl = document.getElementById('amort_real');
-  if (amortRealEl && ex.amort_real !== undefined) amortRealEl.value = ex.amort_real;
+  if (amortRealEl) amortRealEl.value = ex.amort_real !== undefined ? ex.amort_real : 0;
   const pctAmEl = document.getElementById('pct_amortizante');
-  if (pctAmEl && ex.pct_amortizante !== undefined) pctAmEl.value = ex.pct_amortizante;
+  if (pctAmEl) pctAmEl.value = ex.pct_amortizante !== undefined ? ex.pct_amortizante : 30;
 
   _colRows = (ex.colRows || []).map(r => ({ tipo: r.tipo, desc: r.desc, bruto: r.bruto }));
   renderColTable();

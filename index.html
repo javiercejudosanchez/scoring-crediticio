@@ -123,6 +123,18 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
   display: none;
 }
 .dev-mode-banner.visible { display: block; }
+.bullet-warning-banner {
+  background: rgba(201,168,76,0.08);
+  border: 1px solid rgba(201,168,76,0.25);
+  border-left: 4px solid #c9a84c;
+  border-radius: 8px;
+  padding: .65rem 1rem .65rem 1.2rem;
+  margin-bottom: 1.2rem;
+  font-size: .8rem;
+  color: #a0a0b8;
+  display: none;
+}
+.bullet-warning-banner.visible { display: block; }
 .dev-analysis-card {
   background: #13131a; border: 1px solid #1f1f2e;
   border-radius: 12px; padding: 1.2rem 1.4rem; margin-top: 1.4rem;
@@ -1024,7 +1036,26 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
   <div class="field"><label>Proveedores (pagar)</label><input type="number" id="proveedores" step="0.1" value="18"></div>
   <div class="field"><label>Inventario (M€)</label><input type="number" id="inventario" step="0.1" value="0"></div>
   <div class="field"><label>Aprovisionamientos (M€)</label><input type="number" id="aprovisionamientos" step="0.1" value="0"></div>
-  <div class="field"><label>Vida media deuda (años)</label><input type="number" id="vida_media" step="0.5" value="5"></div>
+  <div class="field"><label>Vida media deuda (años)</label><input type="number" id="vida_media" step="0.5" value="5" oninput="update()"></div>
+
+  <!-- Estructura de amortización -->
+  <div class="field">
+    <label>Estructura de amortización</label>
+    <select id="estructura_amort" onchange="update()"
+      style="width:100%;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.82rem;">
+      <option value="amortizante">Amortizante (lineal)</option>
+      <option value="bullet">Bullet (pago único al vencimiento)</option>
+      <option value="mixta">Mixta (parcial + balloon)</option>
+    </select>
+  </div>
+  <div id="field-amort-real" style="display:none;">
+    <div class="field"><label>Amortización real anual (M€)</label>
+      <input type="number" id="amort_real" step="1" value="0" oninput="update()"></div>
+  </div>
+  <div id="field-pct-amortizante" style="display:none;">
+    <div class="field"><label>% principal que amortiza linealmente</label>
+      <input type="number" id="pct_amortizante" step="5" value="30" oninput="update()"></div>
+  </div>
 
   <hr class="sb-sep">
   <!-- Operación nueva -->
@@ -1236,6 +1267,13 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
       ⚙️ <strong>Modo Project Developer activo.</strong>
       El scoring usa metodología ajustada. DSCR desdoblado en operacional y constructivo.
       Pesos recalibrados. Gating estándar desactivado (DSCR consolidado distorsionado por project finance).
+    </div>
+
+    <!-- Bullet / Mixta amort warning -->
+    <div id="bullet-warning-banner" class="bullet-warning-banner">
+      ⚠️ <strong>Estructura bullet / mixta.</strong>
+      El DSCR usa la amortización real declarada, no DFN/vida_media.
+      Esto puede diferir significativamente del perfil de amortización contable.
     </div>
 
     <!-- Gating banner -->
@@ -2217,9 +2255,21 @@ function calcRatios(d) {
   // CFADS = EBITDA - impuestos pagados - capex mantenimiento
   const cfads = ebitda - d.imp_pagado - (d.capex_mant || 0);
 
-  // Debt service = gastos financieros + amortización (DFN / vida_media)
-  const vida_media = Math.max(d.vida_media || 5, 0.5);
-  const amort      = Math.max(dfn, 0) / vida_media;
+  // Debt service = gastos financieros + amortización (según estructura)
+  const vida_media   = Math.max(d.vida_media || 5, 0.5);
+  const estructuraAm = d.estructura_amort || 'amortizante';
+  let amort;
+  if (estructuraAm === 'bullet') {
+    // Bullet: usa amort_real declarada (si 0 → fallback a lineal)
+    amort = d.amort_real > 0 ? d.amort_real : Math.max(dfn, 0) / vida_media;
+  } else if (estructuraAm === 'mixta') {
+    // Mixta: solo el % que amortiza linealmente; el balloon se ignora en deuda corriente
+    const pct = Math.min(Math.max(d.pct_amortizante || 30, 0), 100) / 100;
+    amort = Math.max(dfn, 0) * pct / vida_media;
+  } else {
+    // Amortizante lineal (default)
+    amort = Math.max(dfn, 0) / vida_media;
+  }
   const debt_svc   = d.gastos_fin + amort;
   const dscr       = debt_svc > 0 ? cfads / debt_svc : (cfads > 0 ? 99 : 0);
 
@@ -2341,6 +2391,8 @@ function readInputs() {
     deuda_bruta: g('deuda_bruta'), caja: g('caja'),
     activo_corriente: g('activo_corriente'), pasivo_corriente: g('pasivo_corriente'),
     clientes: g('clientes'), proveedores: g('proveedores'), vida_media: g('vida_media'),
+    estructura_amort: (function(){ const el = document.getElementById('estructura_amort'); return el ? el.value : 'amortizante'; })(),
+    amort_real: g('amort_real'), pct_amortizante: g('pct_amortizante'),
     inventario: g('inventario'), aprovisionamientos: g('aprovisionamientos'),
     importe: g('importe'), plazo: g('plazo'), tipo_int: g('tipo_int'),
     colateral: invTotal > 0 ? invTotal : g('colateral'),
@@ -2461,6 +2513,15 @@ function update() {
   if (devSec)    devSec.style.display  = isDeveloper() ? '' : 'none';
   if (devBanner) devBanner.classList.toggle('visible', isDeveloper());
   if (devAnal)   devAnal.style.display = isDeveloper() ? '' : 'none';
+
+  // Mostrar/ocultar campos de estructura de amortización
+  const estructAm      = document.getElementById('estructura_amort')?.value || 'amortizante';
+  const fieldAmortReal = document.getElementById('field-amort-real');
+  const fieldPct       = document.getElementById('field-pct-amortizante');
+  const bulletBanner   = document.getElementById('bullet-warning-banner');
+  if (fieldAmortReal) fieldAmortReal.style.display = estructAm === 'bullet' ? '' : 'none';
+  if (fieldPct)       fieldPct.style.display        = estructAm === 'mixta'  ? '' : 'none';
+  if (bulletBanner)   bulletBanner.classList.toggle('visible', estructAm === 'bullet' || estructAm === 'mixta');
 
   const nd = calcNuevaDeuda(d, r);
   const wc = calcWC(d);
@@ -3072,10 +3133,13 @@ const EXAMPLES = {
     // Deuda bruta €1.156M | Caja ~€270M | DFN/EBITDA 2.81x (covenant 3.3x adj.)
     // Gastos financieros est. ~€75M (ratio cobertura 4.6x EBITDA/gastosFin. covenant)
     // Vida media deuda: ~3.5 años post-refinanciación bonos 2028
-    // ADVERTENCIA: DSCR < 1x — refleja tensión real de cobertura de deuda
+    // Estructura BULLET: bono senior 2028 (~€600M) + líneas revolventes.
+    // Amort real ~60M€/año (amortización líneas revolventes + cuotas sindicado).
+    // DSCR real ~1.4x (vs 0.56x si se usa DFN/vida_media lineal — artefacto metodológico).
     ventas:4190, ebitda:315, gastos_fin:75, imp_pagado:10, capex_mant:120,
     deuda_bruta:1156, caja:270, activo_corriente:1050, pasivo_corriente:900,
     clientes:380, proveedores:480, vida_media:3.5,
+    estructura_amort:'bullet', amort_real:60,
     inventario:260, aprovisionamientos:2550,
     importe:0, plazo:5, tipo_int:7, colateral:0, tipo_col:'inmueble',
     equipo:'3', concentracion:'3', antiguedad:'5', ciclicidad:'2',
@@ -3129,6 +3193,14 @@ function loadExample(name) {
     const el = document.getElementById(f.replace(/_/g,'-'));
     if (el && ex[f] !== undefined) el.value = ex[f];
   });
+
+  // Amortization structure fields
+  const estructAmEl = document.getElementById('estructura_amort');
+  if (estructAmEl && ex.estructura_amort !== undefined) estructAmEl.value = ex.estructura_amort;
+  const amortRealEl = document.getElementById('amort_real');
+  if (amortRealEl && ex.amort_real !== undefined) amortRealEl.value = ex.amort_real;
+  const pctAmEl = document.getElementById('pct_amortizante');
+  if (pctAmEl && ex.pct_amortizante !== undefined) pctAmEl.value = ex.pct_amortizante;
 
   _colRows = (ex.colRows || []).map(r => ({ tipo: r.tipo, desc: r.desc, bruto: r.bruto }));
   renderColTable();
@@ -3483,12 +3555,18 @@ function exportPDF() {
     const empName = emp || 'la empresa analizada';
     const brpStr = _currentData?.brpResult ? ` BRP ${_currentData.brpResult.brp} (${_currentData.brpResult.label}).` : '';
     const sovStr = _currentData?.sovereign?.capped ? ` Rating final ajustado por techo soberano.` : '';
+    const amortType  = _currentData?.d?.estructura_amort || 'amortizante';
+    const amortStr   = amortType === 'bullet'
+      ? ` Estructura bullet: DSCR calculado sobre amortización real declarada (${_currentData?.d?.amort_real || 0} M€/año).`
+      : amortType === 'mixta'
+      ? ` Estructura mixta: DSCR calculado sobre ${_currentData?.d?.pct_amortizante || 30}% del principal amortizando linealmente.`
+      : '';
     sumEmp.textContent = 'El presente informe analiza la capacidad crediticia de ' + empName +
       ', empresa del sector ' + (sectorLabel || '—').toLowerCase() +
       ', con una necesidad de financiación declarada para ' + (finalidadLabel || '—').toLowerCase() +
       '. El modelo de scoring interno asigna una puntuación de ' + scoreVal + '/100' +
       ' (equivalente a calificación ' + ratingVal + ' en escala S&P),' +
-      ' con decisión de crédito: ' + decisionVal + '.' + brpStr + sovStr;
+      ' con decisión de crédito: ' + decisionVal + '.' + brpStr + sovStr + amortStr;
   }
 
   // Show cover + summary + all sections + legal + print headers

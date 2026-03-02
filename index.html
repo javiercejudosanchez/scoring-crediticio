@@ -1185,15 +1185,20 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
   <!-- Sector comparables -->
   <div class="sb-sec">Sector para comparables</div>
   <div class="field">
-    <select id="sector_comp">
-      <option value="metalurgia">Metalurgia / Fab. metal</option>
-      <option value="quimica">Química / Plásticos</option>
+    <select id="sector_comp" onchange="update()">
+      <option value="metalurgia">Metalurgia / Fab. Metal</option>
+      <option value="quimica">Química / Materiales</option>
       <option value="alimentacion">Alimentación / Bebidas</option>
       <option value="automocion">Automoción / Componentes</option>
       <option value="papel_carton">Papel / Cartón</option>
-      <option value="construccion">Construcción industrial</option>
-      <option value="energia">Energía / Renovables</option>
+      <option value="construccion">Construcción / Inmobiliaria</option>
+      <option value="energia">Energía Renovable / Utilities</option>
       <option value="logistica">Logística / Transporte</option>
+      <option value="tecnologia">Tecnología / Software</option>
+      <option value="retail">Retail / Distribución</option>
+      <option value="farmaceutica">Farmacéutica / Salud</option>
+      <option value="hosteleria">Hostelería / Turismo</option>
+      <option value="otro">Otros sectores</option>
     </select>
   </div>
 
@@ -2229,14 +2234,20 @@ const SCORE_FNS = {
 // Sector benchmarks: {metric: {p25, med, p75}}
 // metrics: em=EBITDA margin%, dn=DFN/EBITDA, ds=DSCR, dc=Días cobro
 const SECT = {
-  metalurgia:   { n:'Metalurgia / Fab. metal',    em:{p25:7,  med:11, p75:16}, dn:{p25:1.5,med:2.8,p75:4.2}, ds:{p25:1.0,med:1.4,p75:1.9}, dc:{p25:45, med:65, p75:90 } },
-  quimica:      { n:'Química / Plásticos',         em:{p25:9,  med:14, p75:20}, dn:{p25:1.2,med:2.3,p75:3.8}, ds:{p25:1.1,med:1.5,p75:2.1}, dc:{p25:40, med:58, p75:80 } },
-  alimentacion: { n:'Alimentación / Bebidas',      em:{p25:8,  med:12, p75:18}, dn:{p25:1.0,med:2.0,p75:3.5}, ds:{p25:1.2,med:1.6,p75:2.3}, dc:{p25:30, med:45, p75:65 } },
-  automocion:   { n:'Automoción / Componentes',    em:{p25:6,  med:10, p75:15}, dn:{p25:1.8,med:3.0,p75:4.5}, ds:{p25:0.9,med:1.3,p75:1.8}, dc:{p25:50, med:72, p75:100} },
-  papel_carton: { n:'Papel / Cartón',              em:{p25:10, med:15, p75:21}, dn:{p25:1.3,med:2.5,p75:4.0}, ds:{p25:1.1,med:1.5,p75:2.0}, dc:{p25:35, med:55, p75:75 } },
-  construccion: { n:'Construcción industrial',     em:{p25:5,  med:9,  p75:14}, dn:{p25:2.0,med:3.2,p75:5.0}, ds:{p25:0.8,med:1.2,p75:1.7}, dc:{p25:60, med:85, p75:120} },
-  energia:      { n:'Energía / Renovables',        em:{p25:30, med:45, p75:60}, dn:{p25:3.0,med:4.5,p75:6.5}, ds:{p25:1.3,med:1.7,p75:2.2}, dc:{p25:25, med:40, p75:60 } },
-  logistica:    { n:'Logística / Transporte',      em:{p25:6,  med:10, p75:15}, dn:{p25:1.5,med:2.7,p75:4.2}, ds:{p25:1.0,med:1.4,p75:1.9}, dc:{p25:30, med:50, p75:70 } },
+  metalurgia:       { n:'Metalurgia / Fab. Metal',           em:{p25:7,  med:11, p75:16}, dn:{p25:1.5,med:2.8,p75:4.2}, ds:{p25:1.0,med:1.4,p75:1.9}, dc:{p25:45, med:65, p75:90 } },
+  quimica:          { n:'Química / Materiales',               em:{p25:9,  med:14, p75:20}, dn:{p25:1.8,med:3.0,p75:4.8}, ds:{p25:1.1,med:1.5,p75:2.1}, dc:{p25:40, med:58, p75:80 } },
+  alimentacion:     { n:'Alimentación / Bebidas',             em:{p25:8,  med:13, p75:20}, dn:{p25:1.2,med:2.2,p75:3.5}, ds:{p25:1.3,med:1.8,p75:2.5}, dc:{p25:30, med:45, p75:65 } },
+  automocion:       { n:'Automoción / Componentes',           em:{p25:6,  med:9,  p75:13}, dn:{p25:1.8,med:3.0,p75:4.5}, ds:{p25:1.1,med:1.5,p75:2.1}, dc:{p25:40, med:55, p75:75 } },
+  papel_carton:     { n:'Papel / Cartón',                     em:{p25:10, med:15, p75:21}, dn:{p25:1.3,med:2.5,p75:4.0}, ds:{p25:1.1,med:1.5,p75:2.0}, dc:{p25:35, med:55, p75:75 } },
+  construccion:     { n:'Construcción / Inmobiliaria',         em:{p25:8,  med:14, p75:22}, dn:{p25:2.5,med:4.0,p75:6.5}, ds:{p25:0.9,med:1.3,p75:1.8}, dc:{p25:60, med:90, p75:130} },
+  energia:          { n:'Energía Renovable / Utilities',       em:{p25:35, med:50, p75:65}, dn:{p25:4.0,med:6.0,p75:9.0}, ds:{p25:1.1,med:1.4,p75:1.8}, dc:{p25:30, med:45, p75:65 } },
+  energia_renovable:{ n:'Energía Renovable / Utilities',       em:{p25:35, med:50, p75:65}, dn:{p25:4.0,med:6.0,p75:9.0}, ds:{p25:1.1,med:1.4,p75:1.8}, dc:{p25:30, med:45, p75:65 } },
+  logistica:        { n:'Logística / Transporte',              em:{p25:7,  med:11, p75:16}, dn:{p25:2.0,med:3.2,p75:5.0}, ds:{p25:1.0,med:1.4,p75:1.9}, dc:{p25:35, med:50, p75:70 } },
+  tecnologia:       { n:'Tecnología / Software',               em:{p25:12, med:20, p75:32}, dn:{p25:0.5,med:1.5,p75:3.0}, ds:{p25:1.5,med:2.2,p75:3.5}, dc:{p25:25, med:40, p75:60 } },
+  retail:           { n:'Retail / Distribución',               em:{p25:5,  med:9,  p75:14}, dn:{p25:1.5,med:2.8,p75:4.5}, ds:{p25:1.1,med:1.6,p75:2.2}, dc:{p25:15, med:25, p75:40 } },
+  farmaceutica:     { n:'Farmacéutica / Salud',                em:{p25:15, med:24, p75:38}, dn:{p25:0.8,med:2.0,p75:3.5}, ds:{p25:1.4,med:2.0,p75:3.0}, dc:{p25:50, med:70, p75:95 } },
+  hosteleria:       { n:'Hostelería / Turismo',                em:{p25:12, med:20, p75:30}, dn:{p25:3.0,med:5.0,p75:8.0}, ds:{p25:0.9,med:1.3,p75:1.8}, dc:{p25:10, med:20, p75:35 } },
+  otro:             { n:'Otros sectores',                      em:{p25:7,  med:12, p75:18}, dn:{p25:1.5,med:2.8,p75:4.5}, ds:{p25:1.0,med:1.4,p75:2.0}, dc:{p25:40, med:60, p75:85 } },
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -2532,7 +2543,7 @@ function update() {
   renderNuevaDeuda(d, r, nd);
   renderComparables(d, r);
   renderCovenants(r, res, score, d);
-  renderDetalle(res, score, baseScore, histPenalty);
+  renderDetalle(res, score, baseScore, histPenalty, finalRating);
   recalcColateral();
 }
 
@@ -2856,26 +2867,34 @@ function renderComparables(d, r) {
   metrics.forEach(m => {
     const s = sect[m.key];
     const v = m.val;
-    // Position
+    // Position bracket
     let pos, posCls;
     if (m.higher === 'better') {
-      if (v >= s.p75)      { pos='Top 25%'; posCls='pos-good'; }
-      else if (v >= s.med) { pos='25–50%';  posCls='pos-mid';  }
-      else if (v >= s.p25) { pos='50–75%';  posCls='pos-mid';  }
-      else                 { pos='Bottom 25%'; posCls='pos-bad'; }
+      if (v >= s.p75)      { pos='Top 25%';    posCls='pos-good'; }
+      else if (v >= s.med) { pos='25–50%';     posCls='pos-mid';  }
+      else if (v >= s.p25) { pos='50–75%';     posCls='pos-mid';  }
+      else                 { pos='Bottom 25%'; posCls='pos-bad';  }
     } else {
-      if (v <= s.p25)      { pos='Top 25%'; posCls='pos-good'; }
-      else if (v <= s.med) { pos='25–50%';  posCls='pos-mid';  }
-      else if (v <= s.p75) { pos='50–75%';  posCls='pos-mid';  }
-      else                 { pos='Bottom 25%'; posCls='pos-bad'; }
+      if (v <= s.p25)      { pos='Top 25%';    posCls='pos-good'; }
+      else if (v <= s.med) { pos='25–50%';     posCls='pos-mid';  }
+      else if (v <= s.p75) { pos='50–75%';     posCls='pos-mid';  }
+      else                 { pos='Bottom 25%'; posCls='pos-bad';  }
     }
+    // ↑/↓/— indicator vs. median (green = outperforms, red = underperforms)
+    const tol = Math.abs(s.med) * 0.05 || 0.05;
+    let arrow, arrowColor;
+    const betterThanMed = m.higher === 'better' ? v > s.med + tol : v < s.med - tol;
+    const worseThanMed  = m.higher === 'better' ? v < s.med - tol : v > s.med + tol;
+    if (betterThanMed)     { arrow = '↑'; arrowColor = '#4caf7d'; }
+    else if (worseThanMed) { arrow = '↓'; arrowColor = '#e05252'; }
+    else                   { arrow = '—'; arrowColor = '#55556a'; }
     rows += `<tr class="company-row">
       <td>${m.label}</td>
       <td>${m.fmt(s.p25)}</td>
       <td>${m.fmt(s.med)}</td>
       <td>${m.fmt(s.p75)}</td>
       <td style="font-weight:800;">${m.fmt(v)}</td>
-      <td class="${posCls}">${pos}</td>
+      <td class="${posCls}">${pos} <span style="font-weight:800;color:${arrowColor};margin-left:.3rem;">${arrow}</span></td>
     </tr>`;
   });
   document.getElementById('sect-tbody').innerHTML = rows;
@@ -2984,24 +3003,32 @@ function renderCovenants(r, res, score, d) {
 }
 
 // ── DETALLE TAB ──
-function renderDetalle(res, score, baseScore, histPenalty) {
+function renderDetalle(res, score, baseScore, histPenalty, finalRating) {
   const fmtValMap = {
-    dscr:          v => v.toFixed(2)+'x',
-    deuda_ebitda:  v => v < 0 ? 'Caja neta' : v.toFixed(2)+'x',
-    llcr:          v => v.toFixed(2)+'x',
-    ebitda_margin: v => v.toFixed(1)+'%',
-    ltv:           v => v === null ? 'N/A' : v.toFixed(1)+'%',
-    ffo_dfn:       v => v.toFixed(1)+'%',
-    dias_cobro:    v => Math.round(v)+' días',
-    equipo:        v => v+' / 5',
-    concentracion: v => v+' / 5',
-    antiguedad:    v => v+' / 5',
-    ciclicidad:    v => v+' / 5',
+    dscr:              v => v == null ? 'N/D' : v.toFixed(2)+'x',
+    deuda_ebitda:      v => v == null ? 'N/D' : v < 0 ? 'Caja neta' : v.toFixed(2)+'x',
+    llcr:              v => v == null ? 'N/D' : v.toFixed(2)+'x',
+    ebitda_margin:     v => v == null ? 'N/D' : v.toFixed(1)+'%',
+    ltv:               v => v == null ? 'N/A' : v.toFixed(1)+'%',
+    ffo_dfn:           v => v == null ? 'N/D' : v.toFixed(1)+'%',
+    dias_cobro:        v => v == null ? 'N/D' : Math.round(v)+' días',
+    equipo:            v => v == null ? 'N/D' : v+' / 5',
+    concentracion:     v => v == null ? 'N/D' : v+' / 5',
+    antiguedad:        v => v == null ? 'N/D' : v+' / 5',
+    ciclicidad:        v => v == null ? 'N/D' : v+' / 5',
+    // Developer mode metrics
+    dscr_operacional:  v => v == null ? 'N/D' : v.toFixed(2)+'x',
+    dscr_constructivo: v => v == null ? 'N/D' : v.toFixed(2)+'x',
+    ratio_construccion:v => v == null ? 'N/D' : v.toFixed(2)+'x',
+    madurez_mw:        v => v == null ? 'N/D' : v.toFixed(1)+'%',
   };
 
   let rows = '';
   for (const [key, rv] of Object.entries(res)) {
-    const valStr = fmtValMap[key] ? fmtValMap[key](rv.valor) : rv.valor;
+    const rawVal = rv.valor;
+    const valStr = fmtValMap[key]
+      ? fmtValMap[key](rawVal)
+      : (rawVal == null ? 'N/D' : (typeof rawVal === 'number' ? rawVal.toFixed(2) : rawVal));
     const badge  = rv.color === 'verde'   ? `<span class="badge-v">VERDE</span>` :
                    rv.color === 'amarillo' ? `<span class="badge-a">AMARILLO</span>` :
                    rv.color === 'naranja'  ? `<span class="badge-n">NARANJA</span>` :
@@ -3023,10 +3050,12 @@ function renderDetalle(res, score, baseScore, histPenalty) {
   }
   document.getElementById('det-tbody').innerHTML = rows;
 
-  const finalScore = Math.round(score);
+  const finalScore = Math.round(Math.max(0, Math.min(100, score || 0)));
   const finalColor = finalScore >= 70 ? '#22c55e' : finalScore >= 40 ? '#f59e0b' : '#ef4444';
-  const rating = spRating(finalScore);
-  let totalHtml = `<span style="font-size:1.1rem;color:${finalColor};">${finalScore} / 100</span> <span style="font-size:.85rem;color:${finalColor};font-weight:700;">(${rating.rating})</span>`;
+  // Use sovereign-adjusted finalRating if passed, otherwise look up by score
+  const ratingObj  = finalRating || spRating(finalScore);
+  const ratingStr  = ratingObj?.rating || spRating(finalScore)?.rating || '—';
+  let totalHtml = `<span style="font-size:1.1rem;color:${finalColor};">${finalScore} / 100</span> <span style="font-size:.85rem;color:${finalColor};font-weight:700;">(${ratingStr})</span>`;
   if (histPenalty && histPenalty.penalty !== 0) {
     totalHtml += `<div style="font-size:.75rem;color:#55556a;margin-top:.2rem;">Score cuantitativo: ${Math.round(baseScore||finalScore)} → ajuste historial: ${histPenalty.penalty>0?'+':''}${histPenalty.penalty} pts</div>`;
   }
@@ -3045,6 +3074,7 @@ function renderDetalle(res, score, baseScore, histPenalty) {
 const EXAMPLES = {
   viscofan: {
     // Viscofan S.A. — datos 2023 aprox. Base score=94, BRP2(+4)=98→AAA→España→A
+    nombre_empresa: 'Viscofan S.A.',
     ventas:1095, ebitda:274, gastos_fin:12, imp_pagado:57, capex_mant:60,
     deuda_bruta:370, caja:220, activo_corriente:560, pasivo_corriente:265,
     clientes:135, proveedores:92, vida_media:5,
@@ -3063,6 +3093,7 @@ const EXAMPLES = {
   grenergy: {
     // Grenergy Renovables — FY2024. Modo developer: BBB- (match EthiFinance) ✅
     // Modo estándar: RECHAZO AUTOMÁTICO + BB+
+    nombre_empresa: 'Grenergy Renovables S.A.',
     ventas:637, ebitda:136, gastos_fin:45, imp_pagado:15, capex_mant:20,
     deuda_bruta:1018, caja:374, activo_corriente:666, pasivo_corriente:619,
     clientes:45, proveedores:193, vida_media:15,
@@ -3087,6 +3118,7 @@ const EXAMPLES = {
     mw_pipeline:        8000,
   },
   tubacex: {
+    nombre_empresa: 'Tubacex S.A.',
     ventas:767.5, ebitda:107, gastos_fin:14.5, imp_pagado:5, capex_mant:20,
     deuda_bruta:420, caja:165, activo_corriente:480, pasivo_corriente:378,
     clientes:76, proveedores:473, vida_media:4,
@@ -3128,6 +3160,7 @@ const EXAMPLES = {
     relacion_bancaria:'deteriorada', anios_sin_incidencias:0
   },
   antolin: {
+    nombre_empresa: 'Grupo Antolín S.A.',
     // Grupo Antolín — FY2024 (datos publicados + estimaciones de balance)
     // Ventas €4.190M | EBITDA €315M (7.5%) | DFN €886M | Pérdida neta -€29M
     // Deuda bruta €1.156M | Caja ~€270M | DFN/EBITDA 2.81x (covenant 3.3x adj.)
@@ -3160,6 +3193,9 @@ function loadExample(name) {
   const ex = EXAMPLES[name];
   if (!ex) return;
   _brpConfirmed = false;  // reset BRP confirmation on new example load
+  // Populate empresa nombre
+  const empEl = document.getElementById('empresa-nombre');
+  if (empEl && ex.nombre_empresa !== undefined) empEl.value = ex.nombre_empresa;
   const numFields = ['ventas','ebitda','gastos_fin','imp_pagado','capex_mant',
     'deuda_bruta','caja','activo_corriente','pasivo_corriente','clientes',
     'proveedores','vida_media','inventario','aprovisionamientos',

@@ -223,6 +223,22 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
   padding:.3rem 0; border-bottom:1px solid #1a1a27; font-size:.83rem; }
 .stress-metric-row:last-child { border-bottom:none; }
 
+/* ── PD card ── */
+.pd-card { background:#111118; border:1px solid #1f1f2e; border-left:4px solid #4caf7d;
+  border-radius:12px; padding:1rem 1.2rem; margin-bottom:1.2rem; }
+.pd-cols { display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; }
+@media (max-width:600px) { .pd-cols { grid-template-columns:1fr; } }
+.pd-col-title { font-size:.72rem; font-weight:700; text-transform:uppercase;
+  letter-spacing:.06em; color:#55556a; margin-bottom:.6rem; }
+.pd-row { display:flex; justify-content:space-between; padding:.25rem 0;
+  border-bottom:1px solid #1a1a27; font-size:.84rem; }
+.pd-row:last-of-type { border-bottom:none; }
+.pd-val { font-weight:700; color:#f0f0f5; }
+.pd-bar-wrap { height:6px; background:#1f1f2e; border-radius:3px; margin:.55rem 0 .3rem; overflow:hidden; }
+.pd-bar      { height:100%; border-radius:3px; transition:width .4s ease; }
+.pd-interp   { font-size:.78rem; color:#a0a0b8; margin-top:.75rem;
+  padding-top:.65rem; border-top:1px solid #1a1a27; line-height:1.5; }
+
 /* ── Charts grid ── */
 .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem;
               margin-bottom: 1.4rem; }
@@ -943,6 +959,7 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
     y los principales factores de riesgo identificados.
   </p>
   <div id="pdf-dev-section" style="display:none;margin-top:1.2rem;"></div>
+  <div id="pdf-pd-section" style="display:none;margin-top:1.2rem;"></div>
   <div id="pdf-stress-section" style="display:none;margin-top:1.2rem;"></div>
 </div>
 
@@ -1395,6 +1412,9 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
         <div id="bar-chart" style="height:210px;"></div>
       </div>
     </div>
+
+    <!-- PD card -->
+    <div id="pd-card" class="pd-card" style="display:none;"></div>
 
     <!-- Stress rating card -->
     <div id="stress-rating-card" class="stress-rating-card" style="display:none;"></div>
@@ -2100,6 +2120,85 @@ function renderStressCard(stressResult, finalRating) {
         </div>
       </div>
     </div>`;
+}
+
+// ── Probability of Default (S&P historical averages 1981-2023) ──
+const PD_TABLE = {
+  'AAA':  { pd1:0.00, pd3:0.13 }, 'AA+':  { pd1:0.02, pd3:0.19 },
+  'AA':   { pd1:0.02, pd3:0.19 }, 'AA-':  { pd1:0.04, pd3:0.26 },
+  'A+':   { pd1:0.05, pd3:0.36 }, 'A':    { pd1:0.06, pd3:0.40 },
+  'A-':   { pd1:0.07, pd3:0.51 }, 'BBB+': { pd1:0.11, pd3:0.67 },
+  'BBB':  { pd1:0.16, pd3:0.93 }, 'BBB-': { pd1:0.26, pd3:1.48 },
+  'BB+':  { pd1:0.43, pd3:2.48 }, 'BB':   { pd1:0.73, pd3:4.08 },
+  'BB-':  { pd1:1.20, pd3:6.16 }, 'B+':   { pd1:1.94, pd3:9.12 },
+  'B':    { pd1:3.10, pd3:13.27}, 'B-':   { pd1:5.12, pd3:19.60},
+};
+const PD_FALLBACK = { pd1:13.50, pd3:38.00 }; // CCC/C y por debajo
+function getPD(rating) { return PD_TABLE[rating] || PD_FALLBACK; }
+
+function _pdBarColor(pd1) {
+  return pd1 < 0.5 ? '#4caf7d' : pd1 < 2.0 ? '#c9a84c' : pd1 < 6.0 ? '#e07b39' : '#e05252';
+}
+function _pdBarWidth(pd1) {
+  // Escala sqrt para hacer visibles las diferencias en ratings IG
+  return Math.min(Math.sqrt(Math.max(pd1, 0) / 20) * 100, 100).toFixed(1);
+}
+function _pdFmt(v) { return v === 0 ? '< 0.01%' : v.toFixed(2) + '%'; }
+
+function _pdInterpText(baseRating, stressRating) {
+  const ord   = baseRating?.ordinal || 0;
+  const sOrd  = stressRating?.ordinal || 0;
+  const diff  = ord - sOrd;
+  let txt;
+  if (ord >= 12)      txt = 'Perfil investment grade. Compatible con mandatos conservadores y fondos regulados.';
+  else if (ord >= 9)  txt = 'Perfil high yield. Apto para fondos de deuda privada con tolerancia a riesgo moderada.';
+  else                txt = 'Perfil especulativo. Requiere due diligence reforzado y cláusulas de protección contractual.';
+  if (diff >= 2)      txt += ' | Atención: el stress test muestra vulnerabilidad significativa al ciclo.';
+  return txt;
+}
+
+function _pdColHTML(title, rating, pd) {
+  const color = _pdBarColor(pd.pd1);
+  const width = _pdBarWidth(pd.pd1);
+  return `
+    <div>
+      <div class="pd-col-title">${title}</div>
+      <div class="pd-row"><span style="color:#a0a0b8;">Rating</span>
+        <span class="pd-val" style="color:${rating?.color||'#c9a84c'};">${rating?.rating||'—'}</span></div>
+      <div class="pd-row"><span style="color:#a0a0b8;">PD 1 año</span>
+        <span class="pd-val">${_pdFmt(pd.pd1)}</span></div>
+      <div class="pd-row"><span style="color:#a0a0b8;">PD 3 años</span>
+        <span class="pd-val">${_pdFmt(pd.pd3)}</span></div>
+      <div class="pd-bar-wrap"><div class="pd-bar" style="width:${width}%;background:${color};"></div></div>
+      <div style="font-size:.7rem;color:#55556a;">
+        ${pd.pd1 < 0.5 ? '● Investment grade' : pd.pd1 < 2.0 ? '● High yield moderado' : pd.pd1 < 6.0 ? '● High yield elevado' : '● Especulativo / Distressed'}
+      </div>
+    </div>`;
+}
+
+function renderPDCard(finalRating, stressResult) {
+  const card = document.getElementById('pd-card');
+  if (!card || !finalRating) { if (card) card.style.display = 'none'; return; }
+
+  const pdBase   = getPD(finalRating.rating);
+  const srRating = (_stressEnabled && stressResult) ? stressResult.finalRatingS : null;
+  const pdStress = srRating ? getPD(srRating.rating) : null;
+
+  const colBase   = _pdColHTML('Rating Base', finalRating, pdBase);
+  const colStress = pdStress
+    ? _pdColHTML('Rating Stress', srRating, pdStress)
+    : `<div><div class="pd-col-title" style="color:#33334a;">Rating Stress</div>
+         <div style="color:#33334a;font-size:.82rem;padding:.4rem 0;">Stress desactivado</div></div>`;
+
+  const interp = _pdInterpText(finalRating, srRating);
+
+  card.style.display = '';
+  card.innerHTML = `
+    <div class="card-title" style="margin-bottom:.8rem;">Probabilidad de Default
+      <small style="font-weight:400;color:#55556a;font-size:.72rem;margin-left:.5rem;">
+        S&amp;P Global historical avg. 1981–2023</small></div>
+    <div class="pd-cols">${colBase}${colStress}</div>
+    <div class="pd-interp">${interp}</div>`;
 }
 
 function calcCyclicalityAdj(d, res) {
@@ -2890,6 +2989,9 @@ function renderScoring(d, r, res, score, baseScore, gate, histPenalty, cyclAdj, 
   setText('rec-decision', decision);
   setText('rec-text', text);
 
+  // PD card
+  renderPDCard(finalRating, stressResult);
+
   // Stress rating card
   renderStressCard(stressResult, finalRating);
 
@@ -3668,6 +3770,10 @@ function resetForm() {
   if (chsec) chsec.style.display = 'none';
   const cycsec = document.getElementById('cyclicality-section');
   if (cycsec) cycsec.style.display = 'none';
+  const pdcard = document.getElementById('pd-card');
+  if (pdcard) pdcard.style.display = 'none';
+  const stressCard = document.getElementById('stress-rating-card');
+  if (stressCard) stressCard.style.display = 'none';
   // Reset colateral inventory
   _colRows = [];
   renderColTable();
@@ -3959,6 +4065,54 @@ function exportPDF() {
       pdfDevSec.innerHTML = buildDevAnalysisHTML(_currentData.r, _currentData.res);
     } else {
       pdfDevSec.style.display = 'none';
+    }
+  }
+
+  // ── PD block ──
+  const pdfPdSec = document.getElementById('pdf-pd-section');
+  if (pdfPdSec) {
+    if (_currentData?.finalRating) {
+      const pdBase   = getPD(_currentData.finalRating.rating);
+      const srRating = (_stressEnabled && _currentData.stressResult) ? _currentData.stressResult.finalRatingS : null;
+      const pdStress = srRating ? getPD(srRating.rating) : null;
+      const pdRow = (label, val) =>
+        `<tr><td style="padding:.22rem .5rem;color:#666;font-size:.82rem;">${label}</td>
+             <td style="padding:.22rem .5rem;font-weight:700;font-size:.82rem;text-align:right;">${val}</td></tr>`;
+      const pdColPDF = (title, rating, pd) => {
+        const color = _pdBarColor(pd.pd1);
+        const width = _pdBarWidth(pd.pd1);
+        return `<div style="flex:1;min-width:140px;">
+          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;margin-bottom:.4rem;">${title}</div>
+          <table style="width:100%;border-collapse:collapse;">
+            ${pdRow('Rating', `<span style="color:${rating?.color||'#c9a84c'};font-size:.95rem;">${rating?.rating||'—'}</span>`)}
+            ${pdRow('PD 1 año', _pdFmt(pd.pd1))}
+            ${pdRow('PD 3 años', _pdFmt(pd.pd3))}
+          </table>
+          <div style="height:5px;background:#eee;border-radius:3px;margin:.4rem 0;overflow:hidden;">
+            <div style="height:100%;width:${width}%;background:${color};border-radius:3px;"></div></div>
+          <div style="font-size:.68rem;color:#888;">${pd.pd1<0.5?'● Investment grade':pd.pd1<2.0?'● High yield moderado':pd.pd1<6.0?'● High yield elevado':'● Especulativo/Distressed'}</div>
+        </div>`;
+      };
+      const interp = _pdInterpText(_currentData.finalRating, srRating);
+      pdfPdSec.style.display = 'block';
+      pdfPdSec.innerHTML = `
+        <div style="border:1px solid #d0d0d0;border-left:4px solid #4caf7d;border-radius:8px;
+                    padding:.8rem 1rem;background:#fafafa;">
+          <div style="font-size:.75rem;font-weight:800;text-transform:uppercase;
+                      letter-spacing:.06em;color:#555;margin-bottom:.7rem;">
+            Probabilidad de Default
+            <span style="font-weight:400;color:#888;text-transform:none;letter-spacing:0;font-size:.7rem;margin-left:.5rem;">
+              S&amp;P Global avg. histórico 1981–2023</span>
+          </div>
+          <div style="display:flex;gap:1.5rem;align-items:flex-start;flex-wrap:wrap;">
+            ${pdColPDF('Rating Base', _currentData.finalRating, pdBase)}
+            ${pdStress ? pdColPDF('Rating Stress', srRating, pdStress) : '<div style="flex:1;color:#aaa;font-size:.82rem;padding-top:.8rem;">Stress desactivado</div>'}
+          </div>
+          <div style="margin-top:.55rem;padding-top:.5rem;border-top:1px solid #e0e0e0;
+                      font-size:.78rem;color:#666;line-height:1.5;">${interp}</div>
+        </div>`;
+    } else {
+      pdfPdSec.style.display = 'none';
     }
   }
 

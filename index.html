@@ -199,6 +199,30 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
              margin-bottom: 1.4rem; }
 @media (max-width: 900px) { .score-row { grid-template-columns: 1fr; } }
 
+/* ── Stress test ── */
+.stress-section-header { cursor:pointer; user-select:none;
+  display:flex; justify-content:space-between; align-items:center; }
+.stress-haircut-lbl { font-size:.72rem; color:#4caf7d; margin-left:.4rem; font-weight:600; }
+.stress-haircut-lbl.manual { color:#c9a84c; }
+.stress-reset-btn {
+  background:#18181f; border:1px solid #2a2a3e; color:#c9a84c;
+  border-radius:4px; padding:.2rem .5rem; cursor:pointer; font-size:.78rem; white-space:nowrap; }
+.stress-reset-btn:hover { background:#222233; }
+.stress-rating-card {
+  background:#111118; border:1px solid #1f1f2e; border-left:4px solid #c9a84c;
+  border-radius:12px; padding:1rem 1.2rem; margin-bottom:1.2rem; }
+.stress-diff-badge {
+  display:inline-block; border-radius:4px; padding:.15rem .5rem;
+  font-size:.72rem; font-weight:700; margin-left:.5rem; vertical-align:middle; }
+.stress-diff-badge.sd-grey    { background:#2a2a3e; color:#888; }
+.stress-diff-badge.sd-amarillo{ background:rgba(201,168,76,.2); color:#c9a84c; }
+.stress-diff-badge.sd-naranja { background:rgba(224,123,57,.2); color:#e07b39; }
+.stress-diff-badge.sd-rojo    { background:rgba(224,82,82,.2); color:#e05252; }
+.stress-metric-row {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:.3rem 0; border-bottom:1px solid #1a1a27; font-size:.83rem; }
+.stress-metric-row:last-child { border-bottom:none; }
+
 /* ── Charts grid ── */
 .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem;
               margin-bottom: 1.4rem; }
@@ -1207,6 +1231,27 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
   </div>
 
   <hr class="sb-sep">
+  <hr class="sb-sep">
+  <!-- Análisis de Stress -->
+  <div class="sb-sec stress-section-header" onclick="toggleStressSection()">
+    Análisis de Stress
+    <span id="stress-toggle-icon" style="font-size:.75rem;color:#55556a;">▲</span>
+  </div>
+  <div id="stress-section-body">
+    <div class="field">
+      <label>EBITDA Stress (M€)
+        <span id="stress-haircut-lbl" class="stress-haircut-lbl"></span>
+      </label>
+      <div style="display:flex;gap:.4rem;align-items:center;">
+        <input type="number" id="ebitda-stress" step="0.1" value=""
+          oninput="onStressManualEdit()"
+          style="flex:1;background:#18181f;color:#f0f0f5;border:1px solid #2a2a3e;border-radius:6px;padding:.3rem .6rem;font-size:.82rem;">
+        <button id="stress-reset-btn" onclick="resetStressAuto()" class="stress-reset-btn" style="display:none;">↺ Auto</button>
+      </div>
+    </div>
+  </div>
+  <hr class="sb-sep">
+
   <button class="pdf-upload-btn" onclick="document.getElementById('pdf-file-input').click()">📄 Subir estados financieros (PDF)</button>
   <input type="file" id="pdf-file-input" accept=".pdf" style="display:none" onchange="processPDF(this)">
   <button class="action-btn" onclick="update()">Calcular scoring</button>
@@ -1349,6 +1394,9 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
         <div id="bar-chart" style="height:210px;"></div>
       </div>
     </div>
+
+    <!-- Stress rating card -->
+    <div id="stress-rating-card" class="stress-rating-card" style="display:none;"></div>
 
     <!-- Recommendation banner -->
     <div id="rec-banner" class="rec-banner verde">
@@ -1893,6 +1941,166 @@ function renderWorkingCapital(d, wc) {
 }
 
 // ── Historial Crediticio ──
+// ── Stress test ──
+let _stressEnabled    = true;
+let _stressManualEdit = false;
+
+function getStressHaircut(cic) {
+  // d.ciclicidad = Estabilidad Sector: 5=Muy Alta estabilidad, 1=Muy Baja estabilidad
+  // Muy Alta estabilidad (utilities)   → -15%
+  // Alta estabilidad (alimentación)    → -20%
+  // Media (manufacturero general)      → -30%
+  // Baja estabilidad (acero/auto)      → -50%
+  // Muy Baja estabilidad (constr/ship) → -65%
+  const map = { 5:0.15, 4:0.20, 3:0.30, 2:0.50, 1:0.65 };
+  return map[parseInt(cic)] !== undefined ? map[parseInt(cic)] : 0.30;
+}
+
+function toggleStressSection() {
+  _stressEnabled = !_stressEnabled;
+  const body = document.getElementById('stress-section-body');
+  const icon = document.getElementById('stress-toggle-icon');
+  if (body) body.style.display = _stressEnabled ? '' : 'none';
+  if (icon) icon.textContent   = _stressEnabled ? '▲' : '▼';
+  update();
+}
+
+function onStressManualEdit() {
+  _stressManualEdit = true;
+  document.getElementById('stress-reset-btn').style.display = '';
+  update();
+}
+
+function resetStressAuto() {
+  _stressManualEdit = false;
+  document.getElementById('stress-reset-btn').style.display = 'none';
+  update();
+}
+
+function _stressUpdateLabel(ebitdaBase, ebitdaStress, isManual) {
+  const lbl = document.getElementById('stress-haircut-lbl');
+  if (!lbl) return;
+  if (!ebitdaBase || ebitdaBase <= 0) { lbl.textContent = ''; return; }
+  const pct = Math.round((1 - ebitdaStress / ebitdaBase) * 100);
+  if (isManual) {
+    lbl.textContent = `Haircut personalizado: -${pct}%`;
+    lbl.className   = 'stress-haircut-lbl manual';
+  } else {
+    lbl.textContent = `Haircut aplicado: -${pct}%`;
+    lbl.className   = 'stress-haircut-lbl';
+  }
+}
+
+function calcStress(d, r, pesos) {
+  if (!_stressEnabled) return null;
+  const ebitdaBase = r.ebitda;
+  if (!ebitdaBase || ebitdaBase <= 0) return null;
+
+  const stressEl = document.getElementById('ebitda-stress');
+  let ebitdaStress;
+  if (_stressManualEdit && stressEl && stressEl.value !== '') {
+    ebitdaStress = parseFloat(stressEl.value);
+    if (isNaN(ebitdaStress)) ebitdaStress = ebitdaBase * (1 - getStressHaircut(d.ciclicidad));
+  } else {
+    ebitdaStress = ebitdaBase * (1 - getStressHaircut(d.ciclicidad));
+    if (stressEl) stressEl.value = ebitdaStress.toFixed(1);
+  }
+
+  const haircut    = (ebitdaBase - ebitdaStress) / ebitdaBase;
+  _stressUpdateLabel(ebitdaBase, ebitdaStress, _stressManualEdit);
+
+  const dfn       = r.dfn;
+  const gfin      = d.gastos_fin   || 0;
+  const imp       = d.imp_pagado   || 0;
+  const capex     = d.capex_mant   || 0;
+  const ventas    = d.ventas       || 1;
+  const vm        = Math.max(d.vida_media || 5, 0.5);
+  const debt_svc  = r.debt_svc;
+
+  const cfadsS    = ebitdaStress - imp - capex;
+  const rS        = Object.assign({}, r);
+  rS.ebitda        = ebitdaStress;
+  rS.ebitda_margin = ebitdaStress / ventas * 100;
+  rS.deuda_ebitda  = ebitdaStress > 0 ? dfn / ebitdaStress : 99;
+  rS.dscr          = debt_svc > 0 ? cfadsS / debt_svc : 0;
+  rS.llcr          = dfn > 0 ? (cfadsS * vm) / dfn : 0;
+  rS.ffo_dfn       = dfn > 0 ? (ebitdaStress - gfin - imp) / dfn * 100 : 0;
+
+  const fcfBase  = r.cfads !== undefined ? r.cfads : (ebitdaBase - imp - capex);
+  const fcfS     = fcfBase * (ebitdaStress / ebitdaBase);
+  const fcfDfnS  = dfn > 0 ? fcfS / dfn * 100 : 0;
+
+  const resS          = calcScores(rS, pesos);
+  const baseScoreS    = Math.round(totalScore(resS));
+  const cyclAdjS      = calcCyclicalityAdj(d, resS);
+  const scoreS        = Math.max(0, Math.min(100, baseScoreS + cyclAdjS.adj));
+  const country       = document.getElementById('pais-domicilio')?.value || '';
+  const preS          = spRating(scoreS);
+  const sovS          = calcSovereignCeiling(preS.ordinal, country);
+  const finalRatingS  = ratingFromOrdinal(sovS.finalOrdinal);
+
+  return {
+    ebitdaStress, ebitdaBase, haircut, isManual: _stressManualEdit,
+    dfn_ebitda_s: rS.deuda_ebitda,
+    coverage_s:   gfin > 0 ? ebitdaStress / gfin : 0,
+    margin_s:     rS.ebitda_margin,
+    fcf_dfn_s:    fcfDfnS,
+    dscr_s:       rS.dscr,
+    scoreS, finalRatingS
+  };
+}
+
+function renderStressCard(stressResult, finalRating) {
+  const card = document.getElementById('stress-rating-card');
+  if (!card) return;
+  if (!stressResult || !_stressEnabled) { card.style.display = 'none'; return; }
+
+  const notchDiff = (finalRating?.ordinal || 0) - (stressResult.finalRatingS?.ordinal || 0);
+  let diffBadge;
+  if (notchDiff <= 0)     diffBadge = `<span class="stress-diff-badge sd-grey">= Sin cambio</span>`;
+  else if (notchDiff===1) diffBadge = `<span class="stress-diff-badge sd-amarillo">▼ -1 notch</span>`;
+  else if (notchDiff===2) diffBadge = `<span class="stress-diff-badge sd-naranja">▼▼ -2 notches</span>`;
+  else                    diffBadge = `<span class="stress-diff-badge sd-rojo">⚠ -${notchDiff} notches. Riesgo alto de ciclo</span>`;
+
+  const fr         = stressResult.finalRatingS;
+  const haircutPct = Math.round(stressResult.haircut * 100);
+  const lbl        = stressResult.isManual ? 'Haircut personalizado' : 'Haircut aplicado';
+
+  card.style.display = '';
+  card.innerHTML = `
+    <div class="card-title" style="margin-bottom:.8rem;">Rating Stress ${diffBadge}</div>
+    <div style="display:flex;gap:1.5rem;flex-wrap:wrap;align-items:flex-start;">
+      <div style="text-align:center;min-width:80px;">
+        <div style="font-size:2rem;font-weight:900;color:${fr.color||'#c9a84c'};">${fr.rating}</div>
+        <div style="font-size:.72rem;color:#55556a;margin-top:.2rem;">${stressResult.scoreS} pts</div>
+        <div style="font-size:.68rem;color:#55556a;">${fr.desc||''}</div>
+      </div>
+      <div style="flex:1;min-width:180px;">
+        <div class="stress-metric-row">
+          <span style="color:#55556a;">EBITDA stress</span>
+          <span style="font-weight:700;">${stressResult.ebitdaStress.toFixed(1)} M€
+            <small style="color:#55556a;font-weight:400;">(${lbl}: -${haircutPct}%)</small></span>
+        </div>
+        <div class="stress-metric-row">
+          <span style="color:#55556a;">DFN / EBITDA stress</span>
+          <span style="font-weight:700;">${stressResult.dfn_ebitda_s.toFixed(2)}x</span>
+        </div>
+        <div class="stress-metric-row">
+          <span style="color:#55556a;">EBITDA stress / Intereses</span>
+          <span style="font-weight:700;">${stressResult.coverage_s.toFixed(2)}x</span>
+        </div>
+        <div class="stress-metric-row">
+          <span style="color:#55556a;">Margen EBITDA stress</span>
+          <span style="font-weight:700;">${stressResult.margin_s.toFixed(1)}%</span>
+        </div>
+        <div class="stress-metric-row">
+          <span style="color:#55556a;">FCF stress / Deuda</span>
+          <span style="font-weight:700;">${stressResult.fcf_dfn_s.toFixed(1)}%</span>
+        </div>
+      </div>
+    </div>`;
+}
+
 function calcCyclicalityAdj(d, res) {
   const cic = parseInt(d.ciclicidad) || 3;
   // Descuento sobre métricas financieras sensibles al ciclo
@@ -2546,6 +2754,7 @@ function update() {
   const finalRating     = ratingFromOrdinal(sovereign.finalOrdinal);
   const score           = scoreConBRP;
   const gate            = checkGating(res, r);
+  const stressResult    = calcStress(d, r, pesos);
 
   // Mostrar/ocultar elementos developer
   const devSec    = document.getElementById('dev-fields-section');
@@ -2566,8 +2775,8 @@ function update() {
 
   const nd = calcNuevaDeuda(d, r);
   const wc = calcWC(d);
-  _currentData = { d, r, res, score, baseScore, gate, nd, wc, cyclAdj, histPenalty, brpResult, sovereign, finalRating };
-  renderScoring(d, r, res, score, baseScore, gate, histPenalty, cyclAdj, brpResult, sovereign, finalRating);
+  _currentData = { d, r, res, score, baseScore, gate, nd, wc, cyclAdj, histPenalty, brpResult, sovereign, finalRating, stressResult };
+  renderScoring(d, r, res, score, baseScore, gate, histPenalty, cyclAdj, brpResult, sovereign, finalRating, stressResult);
   renderBRPMatrix(brpResult.ir, brpResult.cp, brpResult.brp);
   renderWorkingCapital(d, wc);
   renderNuevaDeuda(d, r, nd);
@@ -2603,7 +2812,7 @@ function renderCyclicalityAdj(cyclAdj) {
      </div>`;
 }
 
-function renderScoring(d, r, res, score, baseScore, gate, histPenalty, cyclAdj, brpResult, sovereign, finalRating) {
+function renderScoring(d, r, res, score, baseScore, gate, histPenalty, cyclAdj, brpResult, sovereign, finalRating, stressResult) {
   // KPIs
   setText('kpi-ebitda',  r.ebitda.toFixed(1) + ' M€');
   setText('kpi-margin',  r.ebitda_margin.toFixed(1) + '%');
@@ -2679,6 +2888,9 @@ function renderScoring(d, r, res, score, baseScore, gate, histPenalty, cyclAdj, 
   setText('rec-icon', icon);
   setText('rec-decision', decision);
   setText('rec-text', text);
+
+  // Stress rating card
+  renderStressCard(stressResult, finalRating);
 
   // Cyclicality adjustment card
   renderCyclicalityAdj(cyclAdj);
@@ -3396,6 +3608,12 @@ function loadExample(name) {
 
   _colRows = (ex.colRows || []).map(r => ({ tipo: r.tipo, desc: r.desc, bruto: r.bruto }));
   renderColTable();
+
+  // Reset stress manual edit — recalculate auto on update()
+  _stressManualEdit = false;
+  const stressResetBtn = document.getElementById('stress-reset-btn');
+  if (stressResetBtn) stressResetBtn.style.display = 'none';
+
   update();
 }
 

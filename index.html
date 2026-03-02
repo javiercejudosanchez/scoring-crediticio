@@ -965,6 +965,7 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
     <button class="ex-btn" onclick="loadExample('viscofan')">Viscofan</button>
     <button class="ex-btn" onclick="loadExample('grenergy')">Grenergy</button>
     <button class="ex-btn" onclick="loadExample('tubacex')">Tubacex</button>
+    <button class="ex-btn" onclick="loadExample('antolin')">Gr. Antolín</button>
     <button class="ex-btn" onclick="loadExample('aa')">Perfil AA</button>
     <button class="ex-btn" onclick="loadExample('c')">Perfil C</button>
   </div>
@@ -3064,6 +3065,30 @@ const EXAMPLES = {
     finalidad:'refinanciacion',
     rai:'activas', asnef:'si', impagos:'recurrente', demandas:'menor',
     relacion_bancaria:'deteriorada', anios_sin_incidencias:0
+  },
+  antolin: {
+    // Grupo Antolín — FY2024 (datos publicados + estimaciones de balance)
+    // Ventas €4.190M | EBITDA €315M (7.5%) | DFN €886M | Pérdida neta -€29M
+    // Deuda bruta €1.156M | Caja ~€270M | DFN/EBITDA 2.81x (covenant 3.3x adj.)
+    // Gastos financieros est. ~€75M (ratio cobertura 4.6x EBITDA/gastosFin. covenant)
+    // Vida media deuda: ~3.5 años post-refinanciación bonos 2028
+    // ADVERTENCIA: DSCR < 1x — refleja tensión real de cobertura de deuda
+    ventas:4190, ebitda:315, gastos_fin:75, imp_pagado:10, capex_mant:120,
+    deuda_bruta:1156, caja:270, activo_corriente:1050, pasivo_corriente:900,
+    clientes:380, proveedores:480, vida_media:3.5,
+    inventario:260, aprovisionamientos:2550,
+    importe:0, plazo:5, tipo_int:7, colateral:0, tipo_col:'inmueble',
+    equipo:'3', concentracion:'3', antiguedad:'5', ciclicidad:'2',
+    sector_comp:'automocion',
+    finalidad:'refinanciacion',
+    rai:'ninguna', asnef:'no', impagos:'ninguno', demandas:'ninguna',
+    relacion_bancaria:'buena', anios_sin_incidencias:15,
+    pais_domicilio:'España',
+    // BRP: Automoción — IR3 (ciclicidad alta, regulación EV adversa)
+    //                   CP3 (tamaño mediano, eficiencia por debajo media)
+    // → BRP3 Satisfactorio (ajuste 0 pts)
+    brp_ciclicidad:'2', brp_barreras:'3', brp_competitiva:'4', brp_regulacion:'4',
+    brp_tamano:'3', brp_diversificacion:'2', brp_ventaja:'3', brp_eficiencia:'4',
   }
 };
 

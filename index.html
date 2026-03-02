@@ -978,9 +978,10 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
     <button class="ex-btn" onclick="loadExample('grenergy')">Grenergy</button>
     <button class="ex-btn" onclick="loadExample('tubacex')">Tubacex</button>
     <button class="ex-btn" onclick="loadExample('antolin')">Gr. Antolín</button>
-    <button class="ex-btn" onclick="loadExample('acerinox_europa')">Acerinox Europa</button>
-    <button class="ex-btn" onclick="loadExample('nas')">NAS (EEUU)</button>
-    <button class="ex-btn" onclick="loadExample('columbus')">Columbus ZA</button>
+    <button class="ex-btn" onclick="loadExample('acerinox')" style="font-weight:700;">Acerinox Grupo</button>
+    <button class="ex-btn" onclick="loadExample('acerinox_europa')">↳ Acerinox Europa</button>
+    <button class="ex-btn" onclick="loadExample('nas')">↳ NAS (EEUU)</button>
+    <button class="ex-btn" onclick="loadExample('columbus')">↳ Columbus ZA</button>
     <button class="ex-btn" onclick="loadExample('aa')">Perfil AA</button>
     <button class="ex-btn" onclick="loadExample('c')">Perfil C</button>
   </div>
@@ -3189,6 +3190,30 @@ const EXAMPLES = {
     // → BRP3 Satisfactorio (ajuste 0 pts)
     brp_ciclicidad:'2', brp_barreras:'3', brp_competitiva:'4', brp_regulacion:'4',
     brp_tamano:'3', brp_diversificacion:'2', brp_ventaja:'3', brp_eficiencia:'4',
+  },
+  acerinox: {
+    nombre_empresa: 'Acerinox S.A. (Grupo Consolidado)',
+    // FY2024 — grupo consolidado. Huelga Acerinox Europa 5 meses → impacto -€84M EBITDA
+    // S&P rating real: BBB- estable | EBITDA normalizado sin huelga ~€584M
+    // DFN: €1.138M | DFN/EBITDA: 2.27x | Deuda bruta: €2.401M | Caja: €1.263M
+    // Plantas: Acerinox Europa (España), NAS (EEUU), Columbus Stainless (Sudáfrica)
+    // Top-3 productor mundial de acero inoxidable (volumen ~1.1 Mt/año)
+    ventas:5413, ebitda:500, gastos_fin:70, imp_pagado:60, capex_mant:120,
+    deuda_bruta:2401, caja:1263, activo_corriente:4000, pasivo_corriente:1400,
+    clientes:546, proveedores:672, vida_media:6,
+    inventario:2062, aprovisionamientos:3900,
+    importe:0, plazo:5, tipo_int:3.5, colateral:0, tipo_col:'inmueble',
+    equipo:'4', concentracion:'3', antiguedad:'5', ciclicidad:'2',
+    sector_comp:'metalurgia',
+    finalidad:'refinanciacion',
+    rai:'ninguna', asnef:'no', impagos:'ninguno', demandas:'ninguna',
+    relacion_bancaria:'buena', anios_sin_incidencias:25,
+    pais_domicilio:'España',
+    // BRP: Metalurgia global — IR3 (ciclicidad alta, commodity), CP2 (top-3 mundial,
+    //   3 continentes, tecnología propia, tamaño líder)
+    // → BRP2 Fuerte (+4 pts) — liderazgo global mitiga la ciclicidad sectorial
+    brp_ciclicidad:'3', brp_barreras:'3', brp_competitiva:'2', brp_regulacion:'3',
+    brp_tamano:'1', brp_diversificacion:'2', brp_ventaja:'2', brp_eficiencia:'3',
   },
   acerinox_europa: {
     nombre_empresa: 'Acerinox Europa S.A.',
